@@ -25,14 +25,14 @@ export const CreateWorkflowForm: React.FC<{ onSuccess: () => void }> = ({ onSucc
                 body: JSON.stringify(formData),
             });
 
-            if (!res.ok) throw new Error('Failed to integrate workflow');
+            if (!res.ok) throw new Error('Failed to create workflow');
 
-            showToast(`Workflow ${formData.name} is now active`, 'success');
+            showToast(`Workflow ${formData.name} created successfully`, 'success');
             onSuccess();
             closeModal();
         } catch (error) {
             console.error(error);
-            showToast('Logic error: Workflow assembly failed', 'error');
+            showToast('Failed to create workflow', 'error');
         } finally {
             setSubmitting(false);
         }
@@ -41,7 +41,7 @@ export const CreateWorkflowForm: React.FC<{ onSuccess: () => void }> = ({ onSucc
     return (
         <form onSubmit={handleSubmit} className="space-y-8">
             <div className="space-y-2">
-                <label className="text-[10px] font-sans font-bold uppercase tracking-widest text-zinc-400">Flow Designation</label>
+                <label className="text-[10px] font-sans font-bold uppercase tracking-widest text-zinc-400">Workflow Name</label>
                 <input
                     required
                     type="text"
@@ -77,14 +77,14 @@ export const CreateWorkflowForm: React.FC<{ onSuccess: () => void }> = ({ onSucc
                 <div className="space-y-4">
                     <div className="flex items-center gap-2 mb-2">
                         <Zap size={14} className="text-[var(--forest-green)]" />
-                        <span className="text-[10px] font-sans font-bold uppercase tracking-widest">Autonomous action</span>
+                        <span className="text-[10px] font-sans font-bold uppercase tracking-widest">Then Execute</span>
                     </div>
                     <select
                         value={formData.action_type}
                         onChange={(e) => setFormData({ ...formData, action_type: e.target.value })}
                         className="w-full bg-white border border-black/5 p-4 text-sm font-sans focus:ring-0 focus:border-[var(--rose-gold)] transition-colors outline-none appearance-none"
                     >
-                        <option value="send_email">Dispatch Email</option>
+                        <option value="send_email">Send Email</option>
                         <option value="score_lead">Score Lead (AI)</option>
                         <option value="notify_admin">Send Notification</option>
                         <option value="enrich_contact">Enrich Data</option>
@@ -97,7 +97,7 @@ export const CreateWorkflowForm: React.FC<{ onSuccess: () => void }> = ({ onSucc
                     disabled={submitting}
                     className="w-full ink-button flex items-center justify-center gap-2 text-xs font-sans font-bold uppercase tracking-widest p-4 disabled:opacity-50"
                 >
-                    {submitting ? 'Assembling...' : 'Deploy Automation'}
+                    {submitting ? 'Creating...' : 'Create Workflow'}
                 </button>
             </div>
         </form>

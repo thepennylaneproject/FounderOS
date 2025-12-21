@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, Globe, Activity, CheckCircle2, AlertCircle, RefreshCw, TrendingUp } from 'lucide-react';
+import { ShieldCheck, Globe, Activity, CheckCircle2, AlertCircle, RefreshCw, TrendingUp, Lock } from 'lucide-react';
 import { useUI } from '@/context/UIContext';
 import { AddDomainForm } from '@/components/domains/AddDomainForm';
 
@@ -47,7 +47,7 @@ export default function DomainsPage() {
 
     const handleAddDomain = () => {
         openModal(
-            'Add Domain Infrastructure',
+            'Add Email Domain',
             <AddDomainForm onSuccess={fetchDomains} />
         );
     };
@@ -61,8 +61,8 @@ export default function DomainsPage() {
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
             <header className="flex justify-between items-center border-b border-black/5 pb-8">
                 <div>
-                    <h2 className="text-3xl font-serif italic tracking-tight">Domain Infrastructure</h2>
-                    <p className="text-sm font-sans text-zinc-500 mt-1">Health, authentication, and dispatch capacity.</p>
+                    <h2 className="text-3xl font-serif italic tracking-tight">Email Domains</h2>
+                    <p className="text-sm font-sans text-zinc-500 mt-1">Health, authentication, and email deliverability.</p>
                 </div>
                 <div className="flex gap-4">
                     <button
@@ -143,8 +143,18 @@ export default function DomainsPage() {
                     )
                 }) : (
 
-                    <div className="col-span-full p-12 text-center text-zinc-400 italic border border-dashed border-black/10 rounded-sm">
-                        No domains configured for dispatch.
+                    <div className="col-span-full p-12 text-center border border-dashed border-black/10 rounded-sm">
+                        <div className="w-12 h-12 bg-[var(--ivory)] border border-black/5 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <Lock size={24} className="text-zinc-300" />
+                        </div>
+                        <h3 className="text-lg font-serif mb-2">No email domains yet</h3>
+                        <p className="text-sm font-sans text-zinc-400 mb-6 max-w-sm mx-auto">Add your first domain to enable secure email delivery</p>
+                        <button
+                            onClick={handleAddDomain}
+                            className="ink-button text-xs font-sans font-bold uppercase tracking-widest px-6 py-2"
+                        >
+                            Add Domain
+                        </button>
                     </div>
                 )}
             </div>

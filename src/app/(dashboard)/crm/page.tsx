@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Users, Search, Filter, MoreHorizontal, UserPlus, Heart, Sparkles, Flame, Target } from 'lucide-react';
+import { Users, UserPlus, Heart, Sparkles, Flame, Target, HelpCircle, RefreshCw } from 'lucide-react';
 import { useUI } from '@/context/UIContext';
+import { Tooltip } from '@/components/ui/Tooltip';
 import { AddContactForm } from '@/components/crm/AddContactForm';
 import { AIDraftModal } from '@/components/crm/AIDraftModal';
 
@@ -113,20 +114,8 @@ export default function CRMPage() {
             </div>
 
             <div className="bg-white/40 backdrop-blur-sm border border-black/5 rounded-sm overflow-hidden">
-                <div className="p-4 border-b border-black/5 flex justify-between items-center bg-white/20">
-                    <div className="relative w-64">
-                        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
-                        <input
-                            type="text"
-                            placeholder="Search contacts..."
-                            className="w-full bg-transparent border-none focus:ring-0 text-sm font-sans pl-10 h-10"
-                        />
-                    </div>
-                    <div className="flex items-center gap-4">
-                        <button className="text-xs font-sans font-bold uppercase tracking-widest text-zinc-500 flex items-center gap-1">
-                            <Filter size={14} /> Filter
-                        </button>
-                    </div>
+                <div className="p-4 border-b border-black/5 bg-white/20">
+                    <p className="text-xs font-sans text-zinc-500 italic">Showing all active contacts. Advanced search and filtering coming soon.</p>
                 </div>
                 <table className="w-full text-left border-collapse">
                     <thead>
@@ -134,14 +123,31 @@ export default function CRMPage() {
                             <th className="p-6 text-[10px] font-sans font-bold uppercase tracking-widest text-zinc-400">Contact</th>
                             <th className="p-6 text-[10px] font-sans font-bold uppercase tracking-widest text-zinc-400">Company</th>
                             <th className="p-6 text-[10px] font-sans font-bold uppercase tracking-widest text-zinc-400">Stage</th>
-                            <th className="p-6 text-[10px] font-sans font-bold uppercase tracking-widest text-zinc-400">Momentum</th>
-                            <th className="p-6 text-[10px] font-sans font-bold uppercase tracking-widest text-zinc-400">Score</th>
+                            <th className="p-6 text-[10px] font-sans font-bold uppercase tracking-widest text-zinc-400">
+                                <Tooltip text="Engagement velocity based on recent opens & clicks">
+                                    <span className="flex items-center gap-1 cursor-help">
+                                        Momentum
+                                        <HelpCircle size={12} className="text-zinc-400" />
+                                    </span>
+                                </Tooltip>
+                            </th>
+                            <th className="p-6 text-[10px] font-sans font-bold uppercase tracking-widest text-zinc-400">
+                                <Tooltip text="Overall engagement health (0-100). Based on opens, clicks, and time active.">
+                                    <span className="flex items-center gap-1 cursor-help">
+                                        Score
+                                        <HelpCircle size={12} className="text-zinc-400" />
+                                    </span>
+                                </Tooltip>
+                            </th>
                             <th className="p-6 text-[10px] font-sans font-bold uppercase tracking-widest text-zinc-400 text-right">Actions</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-black/5">
                         {loading ? (
-                            <tr><td colSpan={6} className="p-12 text-center text-zinc-400 italic">Syncing CRM data...</td></tr>
+                            <tr><td colSpan={6} className="p-12 text-center">
+                                <RefreshCw size={16} className="animate-spin mx-auto mb-3 text-zinc-400" />
+                                <p className="text-sm font-sans text-zinc-400 italic">Loading contacts...</p>
+                            </td></tr>
                         ) : contacts.map(contact => (
                             <tr key={contact.id} className="hover:bg-black/[0.01] transition-colors group">
                                 <td className="p-6">
@@ -160,7 +166,9 @@ export default function CRMPage() {
                                             <div className="flex items-center gap-2">
                                                 <p className="text-sm font-sans font-bold lowercase">{contact.first_name} {contact.last_name}</p>
                                                 {contact.is_hot_lead && (
-                                                    <span className="text-[8px] font-sans font-bold uppercase tracking-widest px-1.5 py-0.5 bg-orange-500/10 text-orange-600 rounded-full">Hot</span>
+                                                    <Tooltip text="High recent engagement. Strong buying signals detected.">
+                                                        <span className="text-[8px] font-sans font-bold uppercase tracking-widest px-1.5 py-0.5 bg-orange-500/10 text-orange-600 rounded-full cursor-help">Hot</span>
+                                                    </Tooltip>
                                                 )}
                                             </div>
                                             <p className="text-[10px] text-zinc-400 tracking-tight">{contact.email}</p>
@@ -179,9 +187,11 @@ export default function CRMPage() {
                                     <div className="flex flex-col">
                                         <span className="text-sm font-sans font-medium">{contact.momentum_score?.toFixed(1) || '0.0'}</span>
                                         {contact.closer_signal && (
-                                            <span className="text-[9px] font-sans text-green-600 flex items-center gap-1 mt-0.5">
-                                                <Target size={10} /> {contact.closer_signal}
-                                            </span>
+                                            <Tooltip text={`Detected ${contact.closer_signal} keyword in recent communication. Buying signal detected.`}>
+                                                <span className="text-[9px] font-sans text-green-600 flex items-center gap-1 mt-0.5 cursor-help">
+                                                    <Target size={10} /> {contact.closer_signal}
+                                                </span>
+                                            </Tooltip>
                                         )}
                                     </div>
                                 </td>
@@ -193,18 +203,13 @@ export default function CRMPage() {
                                 </td>
 
                                 <td className="p-6 text-right">
-                                    <div className="flex items-center justify-end gap-2">
-                                        <button
-                                            onClick={() => handleAIDraft(contact)}
-                                            className="p-2 text-zinc-400 hover:text-[var(--rose-gold)] transition-colors"
-                                            title="Generate AI Draft"
-                                        >
-                                            <Sparkles size={16} />
-                                        </button>
-                                        <button className="p-2 text-zinc-400 hover:text-[var(--ink)] transition-colors">
-                                            <MoreHorizontal size={16} />
-                                        </button>
-                                    </div>
+                                    <button
+                                        onClick={() => handleAIDraft(contact)}
+                                        className="p-2 text-zinc-400 hover:text-[var(--rose-gold)] transition-colors"
+                                        title="Generate AI Email Draft"
+                                    >
+                                        <Sparkles size={16} />
+                                    </button>
                                 </td>
                             </tr>
                         ))}
