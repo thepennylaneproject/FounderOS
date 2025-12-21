@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Users, UserPlus, Heart, Sparkles, Flame, Target } from 'lucide-react';
+import { Users, UserPlus, Heart, Sparkles, Flame, Target, HelpCircle } from 'lucide-react';
 import { useUI } from '@/context/UIContext';
+import { Tooltip } from '@/components/ui/Tooltip';
 import { AddContactForm } from '@/components/crm/AddContactForm';
 import { AIDraftModal } from '@/components/crm/AIDraftModal';
 
@@ -122,8 +123,22 @@ export default function CRMPage() {
                             <th className="p-6 text-[10px] font-sans font-bold uppercase tracking-widest text-zinc-400">Contact</th>
                             <th className="p-6 text-[10px] font-sans font-bold uppercase tracking-widest text-zinc-400">Company</th>
                             <th className="p-6 text-[10px] font-sans font-bold uppercase tracking-widest text-zinc-400">Stage</th>
-                            <th className="p-6 text-[10px] font-sans font-bold uppercase tracking-widest text-zinc-400">Momentum</th>
-                            <th className="p-6 text-[10px] font-sans font-bold uppercase tracking-widest text-zinc-400">Score</th>
+                            <th className="p-6 text-[10px] font-sans font-bold uppercase tracking-widest text-zinc-400">
+                                <Tooltip text="Engagement velocity based on recent opens & clicks">
+                                    <span className="flex items-center gap-1 cursor-help">
+                                        Momentum
+                                        <HelpCircle size={12} className="text-zinc-400" />
+                                    </span>
+                                </Tooltip>
+                            </th>
+                            <th className="p-6 text-[10px] font-sans font-bold uppercase tracking-widest text-zinc-400">
+                                <Tooltip text="Overall engagement health (0-100). Based on opens, clicks, and time active.">
+                                    <span className="flex items-center gap-1 cursor-help">
+                                        Score
+                                        <HelpCircle size={12} className="text-zinc-400" />
+                                    </span>
+                                </Tooltip>
+                            </th>
                             <th className="p-6 text-[10px] font-sans font-bold uppercase tracking-widest text-zinc-400 text-right">Actions</th>
                         </tr>
                     </thead>
@@ -148,7 +163,9 @@ export default function CRMPage() {
                                             <div className="flex items-center gap-2">
                                                 <p className="text-sm font-sans font-bold lowercase">{contact.first_name} {contact.last_name}</p>
                                                 {contact.is_hot_lead && (
-                                                    <span className="text-[8px] font-sans font-bold uppercase tracking-widest px-1.5 py-0.5 bg-orange-500/10 text-orange-600 rounded-full">Hot</span>
+                                                    <Tooltip text="High recent engagement. Strong buying signals detected.">
+                                                        <span className="text-[8px] font-sans font-bold uppercase tracking-widest px-1.5 py-0.5 bg-orange-500/10 text-orange-600 rounded-full cursor-help">Hot</span>
+                                                    </Tooltip>
                                                 )}
                                             </div>
                                             <p className="text-[10px] text-zinc-400 tracking-tight">{contact.email}</p>
@@ -167,9 +184,11 @@ export default function CRMPage() {
                                     <div className="flex flex-col">
                                         <span className="text-sm font-sans font-medium">{contact.momentum_score?.toFixed(1) || '0.0'}</span>
                                         {contact.closer_signal && (
-                                            <span className="text-[9px] font-sans text-green-600 flex items-center gap-1 mt-0.5">
-                                                <Target size={10} /> {contact.closer_signal}
-                                            </span>
+                                            <Tooltip text={`Detected ${contact.closer_signal} keyword in recent communication. Buying signal detected.`}>
+                                                <span className="text-[9px] font-sans text-green-600 flex items-center gap-1 mt-0.5 cursor-help">
+                                                    <Target size={10} /> {contact.closer_signal}
+                                                </span>
+                                            </Tooltip>
                                         )}
                                     </div>
                                 </td>
