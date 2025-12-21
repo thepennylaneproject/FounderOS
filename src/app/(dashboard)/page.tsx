@@ -15,6 +15,7 @@ import {
 
 import { useUI } from '@/context/UIContext';
 import { BriefPanel } from '@/components/intelligence/BriefPanel';
+import { OnboardingWelcome } from '@/components/dashboard/OnboardingWelcome';
 
 
 const StatCard: React.FC<{ label: string, value: string | number, trend: string, icon: any }> = ({ label, value, trend, icon: Icon }) => (
@@ -44,43 +45,54 @@ export default function OverviewPage() {
     const [workflows, setWorkflows] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
+    const fetchData = async () => {
+        try {
+            const [domainsRes, contactsRes, campaignsRes, workflowsRes] = await Promise.all([
+                fetch('/api/domains'),
+                fetch('/api/contacts'),
+                fetch('/api/campaigns'),
+                fetch('/api/workflows')
+            ]);
+
+            const domains = await domainsRes.json();
+            const contacts = await contactsRes.json();
+            const campaigns = await campaignsRes.json();
+            const workflows = await workflowsRes.json();
+
+            const avgHealth = Math.round(contacts.length > 0
+                ? contacts.reduce((acc: number, c: any) => acc + (c.health_score || 0), 0) / contacts.length
+                : 100);
+
+            setStats({
+                domains: domains.length,
+                contacts: contacts.length,
+                avgHealth,
+                activeWorkflows: workflows.filter((w: any) => w.status === 'active').length
+            });
+
+            setCampaigns(campaigns.slice(0, 5));
+            setWorkflows(workflows.slice(0, 3));
+        } catch (error) {
+            console.error('Error fetching dashboard data:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const [domainsRes, contactsRes, campaignsRes, workflowsRes] = await Promise.all([
-                    fetch('/api/domains'),
-                    fetch('/api/contacts'),
-                    fetch('/api/campaigns'),
-                    fetch('/api/workflows')
-                ]);
-
-                const domains = await domainsRes.json();
-                const contacts = await contactsRes.json();
-                const campaigns = await campaignsRes.json();
-                const workflows = await workflowsRes.json();
-
-                const avgHealth = Math.round(contacts.length > 0
-                    ? contacts.reduce((acc: number, c: any) => acc + (c.health_score || 0), 0) / contacts.length
-                    : 100);
-
-                setStats({
-                    domains: domains.length,
-                    contacts: contacts.length,
-                    avgHealth,
-                    activeWorkflows: workflows.filter((w: any) => w.status === 'active').length
-                });
-
-                setCampaigns(campaigns.slice(0, 5));
-                setWorkflows(workflows.slice(0, 3));
-            } catch (error) {
-                console.error('Error fetching dashboard data:', error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
         fetchData();
     }, []);
+
+    // Show onboarding for new users
+    if (stats.domains === 0 && stats.contacts === 0) {
+        return (
+            <OnboardingWelcome
+                onDomainAdded={fetchData}
+                onContactAdded={fetchData}
+                onCampaignCreated={fetchData}
+            />
+        );
+    }
 
     return (
         <div className="space-y-16 animate-in fade-in slide-in-from-bottom-4 duration-700">
