@@ -27,7 +27,7 @@ export default function AutomationsPage() {
 
     const handleCreateWorkflow = () => {
         openModal(
-            'Architect Automation Flow',
+            'Create Workflow',
             <CreateWorkflowForm onSuccess={fetchWorkflows} />
         );
     };
@@ -41,8 +41,8 @@ export default function AutomationsPage() {
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
             <header className="flex justify-between items-center border-b border-black/5 pb-8">
                 <div>
-                    <h2 className="text-3xl font-serif italic tracking-tight">Automation Engine</h2>
-                    <p className="text-sm font-sans text-zinc-500 mt-1">Design event-driven workflows and autonomous tasks.</p>
+                    <h2 className="text-3xl font-serif italic tracking-tight">Workflows</h2>
+                    <p className="text-sm font-sans text-zinc-500 mt-1">Create event-driven automation to handle repetitive tasks.</p>
                 </div>
                 <button
                     onClick={handleCreateWorkflow}
@@ -54,9 +54,9 @@ export default function AutomationsPage() {
 
             <div className="grid grid-cols-1 gap-8">
                 <section>
-                    <h3 className="text-[10px] font-sans font-bold uppercase tracking-[0.2em] text-zinc-400 mb-6 underline underline-offset-8 decoration-black/5">operational flows</h3>
+                    <h3 className="text-[10px] font-sans font-bold uppercase tracking-[0.2em] text-zinc-400 mb-6 underline underline-offset-8 decoration-black/5">Active Workflows</h3>
                     {loading ? (
-                        <div className="p-12 text-center text-zinc-400 italic">Assembling logic...</div>
+                        <div className="p-12 text-center text-zinc-400 italic">Loading workflows...</div>
                     ) : workflows.length > 0 ? (
                         <div className="space-y-4">
                             {workflows.map(wf => (
@@ -94,7 +94,7 @@ export default function AutomationsPage() {
                         </div>
                     ) : (
                         <div className="p-12 text-center text-zinc-400 italic border border-dashed border-black/10 rounded-sm">
-                            No automations configured. The engine is silent.
+                            No workflows configured. Create one to get started.
                         </div>
                     )}
                 </section>

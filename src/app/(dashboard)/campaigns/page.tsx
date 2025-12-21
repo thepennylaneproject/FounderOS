@@ -28,7 +28,7 @@ export default function CampaignsPage() {
 
     const handleCreateCampaign = () => {
         openModal(
-            'Initialize New Campaign',
+            'Create Campaign',
             <CreateCampaignForm onSuccess={fetchCampaigns} />
         );
     };
@@ -110,7 +110,7 @@ export default function CampaignsPage() {
                     </div>
                 )) : (
                     <div className="p-12 text-center text-zinc-400 italic border border-dashed border-black/10 rounded-sm">
-                        No campaigns yet. The first dispatch awaits.
+                        No campaigns yet. Create one to get started.
                     </div>
                 )}
             </div>

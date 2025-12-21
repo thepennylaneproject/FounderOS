@@ -21,7 +21,7 @@ export const OnboardingWelcome: React.FC<OnboardingWelcomeProps> = ({
     const { openModal } = useUI();
 
     const handleAddDomain = () => {
-        openModal('Add Domain Infrastructure', <AddDomainForm onSuccess={onDomainAdded} />);
+        openModal('Add Email Domain', <AddDomainForm onSuccess={onDomainAdded} />);
     };
 
     const handleAddContact = () => {
@@ -29,7 +29,7 @@ export const OnboardingWelcome: React.FC<OnboardingWelcomeProps> = ({
     };
 
     const handleCreateCampaign = () => {
-        openModal('Initialize New Campaign', <CreateCampaignForm onSuccess={onCampaignCreated} />);
+        openModal('Create Campaign', <CreateCampaignForm onSuccess={onCampaignCreated} />);
     };
 
     return (

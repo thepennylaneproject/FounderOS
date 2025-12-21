@@ -53,7 +53,7 @@ export const CampaignDetailModal: React.FC<CampaignDetailModalProps> = ({ campai
                 throw new Error(error.error || 'Failed to send campaign');
             }
 
-            showToast(`Campaign dispatched to ${recipientCount} recipients`, 'success');
+            showToast(`Campaign sent to ${recipientCount} recipients`, 'success');
             onSuccess();
             closeModal();
         } catch (error: any) {
@@ -118,7 +118,7 @@ export const CampaignDetailModal: React.FC<CampaignDetailModalProps> = ({ campai
                 <div className="p-4 bg-amber-50 border border-amber-200 rounded-sm flex gap-3">
                     <AlertCircle size={16} className="text-amber-600 flex-shrink-0 mt-0.5" />
                     <div>
-                        <p className="text-sm font-sans font-medium text-amber-900">Ready to dispatch?</p>
+                        <p className="text-sm font-sans font-medium text-amber-900">Ready to send this campaign?</p>
                         <p className="text-xs font-sans text-amber-800 mt-1">Once sent, this campaign cannot be undone. All recipients will receive this email.</p>
                     </div>
                 </div>
@@ -133,12 +133,12 @@ export const CampaignDetailModal: React.FC<CampaignDetailModalProps> = ({ campai
                         className="flex-1 ink-button flex items-center justify-center gap-2 text-xs font-sans font-bold uppercase tracking-widest p-4 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         <Send size={16} />
-                        {sending ? 'Dispatching...' : 'Send Campaign'}
+                        {sending ? 'Sending...' : 'Send Campaign'}
                     </button>
                 </div>
             ) : (
                 <div className="space-y-3 p-4 bg-red-50 border border-red-200 rounded-sm">
-                    <p className="text-sm font-sans font-bold text-red-900">Confirm dispatch?</p>
+                    <p className="text-sm font-sans font-bold text-red-900">Confirm send?</p>
                     <p className="text-xs font-sans text-red-800">
                         This will send {recipientCount} emails immediately. This action cannot be reversed.
                     </p>
@@ -148,7 +148,7 @@ export const CampaignDetailModal: React.FC<CampaignDetailModalProps> = ({ campai
                             disabled={sending}
                             className="flex-1 bg-red-600 text-white px-4 py-2 text-xs font-sans font-bold uppercase tracking-widest hover:bg-red-700 disabled:opacity-50 transition-colors"
                         >
-                            {sending ? 'Dispatching...' : 'Yes, Send Now'}
+                            {sending ? 'Sending...' : 'Yes, Send Now'}
                         </button>
                         <button
                             onClick={() => setShowConfirmation(false)}

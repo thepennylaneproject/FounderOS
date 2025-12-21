@@ -23,10 +23,10 @@ export const AIDraftModal: React.FC<{ contact: any }> = ({ contact }) => {
 
             const data = await res.json();
             setDraft(data);
-            showToast('AI Intelligence has generated a draft', 'success');
+            showToast('AI has generated a draft', 'success');
         } catch (error) {
             console.error(error);
-            showToast('AI Engine error: Drafting failed', 'error');
+            showToast('Failed to generate draft', 'error');
         } finally {
             setLoading(false);
         }
@@ -51,13 +51,13 @@ export const AIDraftModal: React.FC<{ contact: any }> = ({ contact }) => {
                 }),
             });
 
-            if (!res.ok) throw new Error('Dispatch failed');
+            if (!res.ok) throw new Error('Send failed');
 
-            showToast('Email dispatched successfully', 'success');
+            showToast('Email sent successfully', 'success');
             closeModal();
         } catch (error) {
             console.error(error);
-            showToast('Dispatch error: SMTP rejection', 'error');
+            showToast('Failed to send email', 'error');
         }
     };
 
@@ -110,7 +110,7 @@ export const AIDraftModal: React.FC<{ contact: any }> = ({ contact }) => {
                             onClick={handleSend}
                             className="flex-1 ink-button flex items-center justify-center gap-2 text-xs font-sans font-bold uppercase tracking-widest py-4"
                         >
-                            <Send size={14} /> Dispatch Email
+                            <Send size={14} /> Send Email
                         </button>
                         <button
                             onClick={handleCopy}

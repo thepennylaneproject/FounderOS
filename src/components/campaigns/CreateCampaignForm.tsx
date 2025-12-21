@@ -32,7 +32,7 @@ export const CreateCampaignForm: React.FC<{ onSuccess: () => void }> = ({ onSucc
             closeModal();
         } catch (error) {
             console.error(error);
-            showToast('Operational error: Campaign rejection', 'error');
+            showToast('Failed to create campaign', 'error');
         } finally {
             setSubmitting(false);
         }
@@ -78,7 +78,7 @@ export const CreateCampaignForm: React.FC<{ onSuccess: () => void }> = ({ onSucc
             </div>
 
             <div className="space-y-2">
-                <label className="text-[10px] font-sans font-bold uppercase tracking-widest text-zinc-400">Dispatch Content (HTML/Text)</label>
+                <label className="text-[10px] font-sans font-bold uppercase tracking-widest text-zinc-400">Message Content (HTML/Text)</label>
                 <textarea
                     required
                     rows={6}

@@ -47,7 +47,7 @@ export default function DomainsPage() {
 
     const handleAddDomain = () => {
         openModal(
-            'Add Domain Infrastructure',
+            'Add Email Domain',
             <AddDomainForm onSuccess={fetchDomains} />
         );
     };
@@ -61,8 +61,8 @@ export default function DomainsPage() {
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
             <header className="flex justify-between items-center border-b border-black/5 pb-8">
                 <div>
-                    <h2 className="text-3xl font-serif italic tracking-tight">Domain Infrastructure</h2>
-                    <p className="text-sm font-sans text-zinc-500 mt-1">Health, authentication, and dispatch capacity.</p>
+                    <h2 className="text-3xl font-serif italic tracking-tight">Email Domains</h2>
+                    <p className="text-sm font-sans text-zinc-500 mt-1">Health, authentication, and email deliverability.</p>
                 </div>
                 <div className="flex gap-4">
                     <button
@@ -144,7 +144,7 @@ export default function DomainsPage() {
                 }) : (
 
                     <div className="col-span-full p-12 text-center text-zinc-400 italic border border-dashed border-black/10 rounded-sm">
-                        No domains configured for dispatch.
+                        No domains configured. Add one to get started.
                     </div>
                 )}
             </div>

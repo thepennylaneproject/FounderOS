@@ -38,10 +38,10 @@ export const DashboardShell: React.FC<{ children: React.ReactNode }> = ({ childr
     const getPageTitle = () => {
         switch (pathname) {
             case '/': return 'Founder Intelligence';
-            case '/domains': return 'Domain Infrastructure';
-            case '/campaigns': return 'Marketing Hub';
+            case '/domains': return 'Email Domains';
+            case '/campaigns': return 'Campaigns';
             case '/crm': return 'Customer CRM';
-            case '/automations': return 'Automation Engine';
+            case '/automations': return 'Workflows';
             case '/inbox': return 'Unified Inbox';
             default: return 'FounderOS';
         }
@@ -49,14 +49,14 @@ export const DashboardShell: React.FC<{ children: React.ReactNode }> = ({ childr
 
     const handleQuickLaunch = () => {
         openModal(
-            'Quick Launch Dispatch',
+            'Quick Actions',
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <button
-                    onClick={() => openModal('Add Domain Infrastructure', <AddDomainForm onSuccess={() => { }} />)}
+                    onClick={() => openModal('Add Email Domain', <AddDomainForm onSuccess={() => { }} />)}
                     className="flex items-center gap-4 p-6 border border-black/5 hover:border-[var(--forest-green)] hover:bg-black/[0.01] transition-all text-left"
                 >
                     <div className="p-3 bg-[var(--ivory)] rounded-sm border border-black/5 text-[var(--forest-green)]"><ShieldCheck size={20} /></div>
-                    <div><p className="text-sm font-sans font-bold uppercase tracking-widest leading-none mb-1">Infrastructure</p><p className="text-[10px] text-zinc-400">Add New Domain</p></div>
+                    <div><p className="text-sm font-sans font-bold uppercase tracking-widest leading-none mb-1">Email Domain</p><p className="text-[10px] text-zinc-400">Add New Domain</p></div>
                 </button>
                 <button
                     onClick={() => openModal('Add New Contact', <AddContactForm onSuccess={() => { }} />)}
@@ -66,11 +66,11 @@ export const DashboardShell: React.FC<{ children: React.ReactNode }> = ({ childr
                     <div><p className="text-sm font-sans font-bold uppercase tracking-widest leading-none mb-1">CRM Growth</p><p className="text-[10px] text-zinc-400">Add New Lead</p></div>
                 </button>
                 <button
-                    onClick={() => openModal('Initialize New Campaign', <CreateCampaignForm onSuccess={() => { }} />)}
+                    onClick={() => openModal('Create Campaign', <CreateCampaignForm onSuccess={() => { }} />)}
                     className="flex items-center gap-4 p-6 border border-black/5 hover:bg-[var(--forest-green)] hover:text-[var(--ivory)] transition-all group text-left"
                 >
                     <div className="p-3 bg-[var(--ivory)] rounded-sm border border-black/5 text-[var(--ink)] group-hover:text-[var(--forest-green)]"><Send size={20} /></div>
-                    <div><p className="text-sm font-sans font-bold uppercase tracking-widest leading-none mb-1 text-[var(--ink)] group-hover:text-[var(--ivory)]">Dispatch</p><p className="text-[10px] text-zinc-400 group-hover:text-white/60">New Campaign</p></div>
+                    <div><p className="text-sm font-sans font-bold uppercase tracking-widest leading-none mb-1 text-[var(--ink)] group-hover:text-[var(--ivory)]">Campaigns</p><p className="text-[10px] text-zinc-400 group-hover:text-white/60">Create New</p></div>
                 </button>
             </div>
         );
@@ -90,10 +90,10 @@ export const DashboardShell: React.FC<{ children: React.ReactNode }> = ({ childr
 
                 <nav className="flex-1 space-y-1">
                     <SidebarItem icon={Zap} label="Overview" href="/" active={pathname === '/'} />
-                    <SidebarItem icon={ShieldCheck} label="Domain Health" href="/domains" active={pathname === '/domains'} />
+                    <SidebarItem icon={ShieldCheck} label="Email Domains" href="/domains" active={pathname === '/domains'} />
                     <SidebarItem icon={Send} label="Campaigns" href="/campaigns" active={pathname === '/campaigns'} />
                     <SidebarItem icon={Inbox} label="Unified Inbox" href="/inbox" active={pathname === '/inbox'} />
-                    <SidebarItem icon={Workflow} label="Automations" href="/automations" active={pathname === '/automations'} />
+                    <SidebarItem icon={Workflow} label="Workflows" href="/automations" active={pathname === '/automations'} />
                     <SidebarItem icon={Users} label="CRM" href="/crm" active={pathname === '/crm'} />
                 </nav>
 
