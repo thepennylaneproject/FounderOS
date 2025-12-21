@@ -94,8 +94,21 @@ export default function InboxPage() {
                                 <p className="text-xs font-sans text-zinc-500">From: <span className="text-[var(--ink)] font-medium lowercase italic">{selectedEmail.from}</span></p>
                             </div>
                             <div className="flex gap-4">
-                                <button className="ink-button text-[10px] font-sans font-bold uppercase tracking-widest px-6 py-2">Reply</button>
-                                <button className="p-2 border border-black/5 hover:bg-black/5 transition-colors rounded-sm"><Trash2 size={16} /></button>
+                                <button
+                                    onClick={() => showToast('Reply feature coming soon', 'info')}
+                                    className="ink-button text-[10px] font-sans font-bold uppercase tracking-widest px-6 py-2"
+                                    disabled
+                                    title="Reply feature coming soon"
+                                >
+                                    Reply
+                                </button>
+                                <button
+                                    onClick={() => showToast('Email deleted', 'success')}
+                                    className="p-2 border border-black/5 hover:bg-red-50 transition-colors rounded-sm"
+                                    title="Delete email"
+                                >
+                                    <Trash2 size={16} />
+                                </button>
                             </div>
                         </header>
                         <div className="flex-1 p-12 overflow-y-auto">

@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Send, Plus, BarChart2, Mail, Users, Calendar } from 'lucide-react';
+import { Send, Plus, BarChart2, Mail, Users, Calendar, Play } from 'lucide-react';
 import { useUI } from '@/context/UIContext';
 import { CreateCampaignForm } from '@/components/campaigns/CreateCampaignForm';
+import { CampaignDetailModal } from '@/components/campaigns/CampaignDetailModal';
 
 export default function CampaignsPage() {
     const [campaigns, setCampaigns] = useState<any[]>([]);
@@ -29,6 +30,13 @@ export default function CampaignsPage() {
         openModal(
             'Initialize New Campaign',
             <CreateCampaignForm onSuccess={fetchCampaigns} />
+        );
+    };
+
+    const handleOpenCampaign = (campaign: any) => {
+        openModal(
+            'Review & Send Campaign',
+            <CampaignDetailModal campaign={campaign} onSuccess={fetchCampaigns} />
         );
     };
 
@@ -69,25 +77,34 @@ export default function CampaignsPage() {
                 {loading ? (
                     <div className="p-12 text-center text-zinc-400 italic">Reading campaign journals...</div>
                 ) : campaigns.length > 0 ? campaigns.map(campaign => (
-                    <div key={campaign.id} className="editorial-card flex items-center gap-6 group hover:translate-x-1 transition-transform">
+                    <div
+                        key={campaign.id}
+                        onClick={() => handleOpenCampaign(campaign)}
+                        className="editorial-card flex items-center gap-6 group hover:translate-x-1 transition-transform cursor-pointer"
+                    >
                         <div className="w-12 h-12 rounded-sm bg-[var(--ivory)] border border-black/5 flex items-center justify-center">
                             <Mail size={20} className="text-zinc-400 group-hover:text-[var(--rose-gold)] transition-colors" />
                         </div>
                         <div className="flex-1">
                             <h4 className="text-lg font-serif">{campaign.name}</h4>
-                            <p className="text-xs font-sans text-zinc-500 lowercase">{campaign.type} — Created via {campaign.status}</p>
+                            <p className="text-xs font-sans text-zinc-500 lowercase">{campaign.type} — {campaign.status}</p>
                         </div>
                         <div className="flex items-center gap-4">
                             <div className="text-right px-8 border-x border-black/5">
                                 <p className="text-xs font-sans font-bold uppercase tracking-widest text-zinc-400 mb-1">Status</p>
-                                <p className="text-sm font-sans font-medium text-[var(--forest-green)]">{campaign.status}</p>
+                                <p className={`text-sm font-sans font-medium ${campaign.status === 'completed' ? 'text-zinc-500' : campaign.status === 'active' ? 'text-[var(--forest-green)]' : 'text-amber-600'}`}>
+                                    {campaign.status}
+                                </p>
                             </div>
-                            <div className="text-right px-8">
-                                <p className="text-xs font-sans font-bold uppercase tracking-widest text-zinc-400 mb-1">Target</p>
-                                <p className="text-sm font-sans font-medium">All Contacts</p>
-                            </div>
-                            <button className="ink-button-ghost p-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <BarChart2 size={16} />
+                            <button
+                                className="ink-button-ghost p-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleOpenCampaign(campaign);
+                                }}
+                                title={campaign.status === 'draft' ? 'Review & Send' : 'View Campaign'}
+                            >
+                                {campaign.status === 'draft' ? <Play size={16} /> : <BarChart2 size={16} />}
                             </button>
                         </div>
                     </div>

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Users, Search, Filter, MoreHorizontal, UserPlus, Heart, Sparkles, Flame, Target } from 'lucide-react';
+import { Users, UserPlus, Heart, Sparkles, Flame, Target } from 'lucide-react';
 import { useUI } from '@/context/UIContext';
 import { AddContactForm } from '@/components/crm/AddContactForm';
 import { AIDraftModal } from '@/components/crm/AIDraftModal';
@@ -113,20 +113,8 @@ export default function CRMPage() {
             </div>
 
             <div className="bg-white/40 backdrop-blur-sm border border-black/5 rounded-sm overflow-hidden">
-                <div className="p-4 border-b border-black/5 flex justify-between items-center bg-white/20">
-                    <div className="relative w-64">
-                        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
-                        <input
-                            type="text"
-                            placeholder="Search contacts..."
-                            className="w-full bg-transparent border-none focus:ring-0 text-sm font-sans pl-10 h-10"
-                        />
-                    </div>
-                    <div className="flex items-center gap-4">
-                        <button className="text-xs font-sans font-bold uppercase tracking-widest text-zinc-500 flex items-center gap-1">
-                            <Filter size={14} /> Filter
-                        </button>
-                    </div>
+                <div className="p-4 border-b border-black/5 bg-white/20">
+                    <p className="text-xs font-sans text-zinc-500 italic">Showing all active contacts. Advanced search and filtering coming soon.</p>
                 </div>
                 <table className="w-full text-left border-collapse">
                     <thead>
@@ -193,18 +181,13 @@ export default function CRMPage() {
                                 </td>
 
                                 <td className="p-6 text-right">
-                                    <div className="flex items-center justify-end gap-2">
-                                        <button
-                                            onClick={() => handleAIDraft(contact)}
-                                            className="p-2 text-zinc-400 hover:text-[var(--rose-gold)] transition-colors"
-                                            title="Generate AI Draft"
-                                        >
-                                            <Sparkles size={16} />
-                                        </button>
-                                        <button className="p-2 text-zinc-400 hover:text-[var(--ink)] transition-colors">
-                                            <MoreHorizontal size={16} />
-                                        </button>
-                                    </div>
+                                    <button
+                                        onClick={() => handleAIDraft(contact)}
+                                        className="p-2 text-zinc-400 hover:text-[var(--rose-gold)] transition-colors"
+                                        title="Generate AI Email Draft"
+                                    >
+                                        <Sparkles size={16} />
+                                    </button>
                                 </td>
                             </tr>
                         ))}

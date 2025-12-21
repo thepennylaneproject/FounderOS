@@ -15,6 +15,7 @@ import {
     Plus,
 } from 'lucide-react';
 import { useUI } from '@/context/UIContext';
+import { useUser } from '@/context/UserContext';
 import { AddContactForm } from '@/components/crm/AddContactForm';
 import { AddDomainForm } from '@/components/domains/AddDomainForm';
 import { CreateCampaignForm } from '@/components/campaigns/CreateCampaignForm';
@@ -32,6 +33,7 @@ const SidebarItem: React.FC<{ icon: any, label: string, href: string, active?: b
 export const DashboardShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const pathname = usePathname();
     const { openModal } = useUI();
+    const { user } = useUser();
 
     const getPageTitle = () => {
         switch (pathname) {
@@ -97,10 +99,12 @@ export const DashboardShell: React.FC<{ children: React.ReactNode }> = ({ childr
 
                 <div className="mt-auto p-6 border-t border-black/5">
                     <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-[var(--rose-gold-muted)] border border-[var(--rose-gold)]" />
+                        <div className="w-8 h-8 rounded-full bg-[var(--rose-gold-muted)] border border-[var(--rose-gold)] flex items-center justify-center text-xs font-serif font-bold">
+                            {user.name.charAt(0).toUpperCase()}
+                        </div>
                         <div className="flex-1 min-w-0">
-                            <p className="text-xs font-semibold truncate">Admin User</p>
-                            <p className="text-[10px] text-zinc-500 truncate">admin@founderos.local</p>
+                            <p className="text-xs font-semibold truncate">{user.name}</p>
+                            <p className="text-[10px] text-zinc-500 truncate">{user.email}</p>
                         </div>
                         <Settings size={14} className="text-zinc-400 cursor-pointer hover:text-[var(--ink)]" />
                     </div>

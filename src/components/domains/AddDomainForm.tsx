@@ -3,11 +3,13 @@
 import React, { useState } from 'react';
 import { useUI } from '@/context/UIContext';
 import { Globe, Shield } from 'lucide-react';
+import { DomainSetupGuide } from './DomainSetupGuide';
 
 export const AddDomainForm: React.FC<{ onSuccess: () => void }> = ({ onSuccess }) => {
     const { showToast, closeModal } = useUI();
     const [submitting, setSubmitting] = useState(false);
     const [domainName, setDomainName] = useState('');
+    const [createdDomain, setCreatedDomain] = useState<string | null>(null);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -22,9 +24,8 @@ export const AddDomainForm: React.FC<{ onSuccess: () => void }> = ({ onSuccess }
 
             if (!res.ok) throw new Error('Failed to integrate domain');
 
-            showToast(`Domain ${domainName} queued for validation`, 'success');
-            onSuccess();
-            closeModal();
+            showToast(`Domain ${domainName} added successfully`, 'success');
+            setCreatedDomain(domainName);
         } catch (error) {
             console.error(error);
             showToast('Infrastructure error: Domain rejected', 'error');
@@ -33,6 +34,15 @@ export const AddDomainForm: React.FC<{ onSuccess: () => void }> = ({ onSuccess }
         }
     };
 
+    const handleSetupComplete = () => {
+        onSuccess();
+        closeModal();
+    };
+
+    if (createdDomain) {
+        return <DomainSetupGuide domain={createdDomain} onComplete={handleSetupComplete} />;
+    }
+
     return (
         <form onSubmit={handleSubmit} className="space-y-8">
             <div className="bg-[var(--ivory)] border border-black/5 p-6 rounded-sm flex items-start gap-4">
@@ -40,8 +50,7 @@ export const AddDomainForm: React.FC<{ onSuccess: () => void }> = ({ onSuccess }
                 <div className="space-y-1">
                     <p className="text-xs font-sans font-bold uppercase tracking-widest">DNS Authentication</p>
                     <p className="text-[10px] text-zinc-500 leading-relaxed font-sans">
-                        FounderOS will generate SPF, DKIM, and DMARC records for your domain.
-                        You will need to add these to your DNS provider to enable secure dispatch.
+                        You'll add SPF and DMARC records to your domain registrar to enable secure email dispatch.
                     </p>
                 </div>
             </div>
@@ -66,7 +75,7 @@ export const AddDomainForm: React.FC<{ onSuccess: () => void }> = ({ onSuccess }
                     disabled={submitting}
                     className="w-full ink-button flex items-center justify-center gap-2 text-xs font-sans font-bold uppercase tracking-widest p-4 disabled:opacity-50"
                 >
-                    {submitting ? 'Auditing...' : 'Initialize Infrastructure'}
+                    {submitting ? 'Auditing...' : 'Add Domain'}
                 </button>
             </div>
         </form>
