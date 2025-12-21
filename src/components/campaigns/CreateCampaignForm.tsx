@@ -94,7 +94,7 @@ export const CreateCampaignForm: React.FC<{ onSuccess: () => void }> = ({ onSucc
                     disabled={submitting}
                     className="w-full ink-button flex items-center justify-center gap-2 text-xs font-sans font-bold uppercase tracking-widest p-4 disabled:opacity-50"
                 >
-                    {submitting ? 'Initializing...' : 'Archive Draft'}
+                    {submitting ? 'Creating...' : 'Create Campaign'}
                 </button>
             </div>
         </form>

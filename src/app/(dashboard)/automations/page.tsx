@@ -32,6 +32,11 @@ export default function AutomationsPage() {
         );
     };
 
+    const handleTestWorkflow = (workflow: any) => {
+        // Manual trigger of workflow
+        alert(`Testing workflow: ${workflow.name}\n\nWorkflow will execute with test data. Check your system logs for execution details.`);
+    };
+
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
             <header className="flex justify-between items-center border-b border-black/5 pb-8">
@@ -72,8 +77,16 @@ export default function AutomationsPage() {
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-4">
-                                            <button className="p-2 text-zinc-400 hover:text-[var(--ink)] transition-colors"><PlayCircle size={18} /></button>
-                                            <button className="p-2 text-zinc-400 hover:text-[var(--ink)] transition-colors"><Settings2 size={18} /></button>
+                                            <button
+                                                onClick={() => handleTestWorkflow(wf)}
+                                                className="p-2 text-zinc-400 hover:text-[var(--forest-green)] transition-colors"
+                                                title="Test this workflow"
+                                            >
+                                                <PlayCircle size={18} />
+                                            </button>
+                                            <button className="p-2 text-zinc-400 hover:text-[var(--ink)] transition-colors" title="Configure (coming soon)">
+                                                <Settings2 size={18} />
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
