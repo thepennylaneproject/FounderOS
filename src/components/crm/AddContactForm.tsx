@@ -2,12 +2,14 @@
 
 import React, { useState } from 'react';
 import { useUI } from '@/context/UIContext';
-import { CheckCircle2, MessageSquare, Send, ArrowRight } from 'lucide-react';
+import { CheckCircle2, MessageSquare, Send, ArrowRight, AlertCircle } from 'lucide-react';
+import { validateContactForm } from '@/lib/validation';
 
 export const AddContactForm: React.FC<{ onSuccess: () => void }> = ({ onSuccess }) => {
     const { showToast, closeModal } = useUI();
     const [submitting, setSubmitting] = useState(false);
     const [created, setCreated] = useState<any>(null);
+    const [errors, setErrors] = useState<Record<string, string>>({});
     const [formData, setFormData] = useState({
         email: '',
         first_name: '',
@@ -17,6 +19,19 @@ export const AddContactForm: React.FC<{ onSuccess: () => void }> = ({ onSuccess 
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        // Validate before submitting
+        const validationErrors = validateContactForm(formData);
+        if (validationErrors.length > 0) {
+            const errorMap = Object.fromEntries(
+                validationErrors.map(err => [err.field, err.message])
+            );
+            setErrors(errorMap);
+            showToast('Please fix the errors below', 'error');
+            return;
+        }
+
+        setErrors({});
         setSubmitting(true);
 
         try {
@@ -100,38 +115,68 @@ export const AddContactForm: React.FC<{ onSuccess: () => void }> = ({ onSuccess 
                 <div className="space-y-2">
                     <label className="text-[10px] font-sans font-bold uppercase tracking-widest text-zinc-400">First Name</label>
                     <input
-                        required
                         type="text"
                         value={formData.first_name}
-                        onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
-                        className="w-full bg-white border border-black/5 p-3 text-sm font-sans focus:ring-0 focus:border-[var(--rose-gold)] transition-colors outline-none"
+                        onChange={(e) => {
+                            setFormData({ ...formData, first_name: e.target.value });
+                            if (errors.first_name) setErrors({ ...errors, first_name: '' });
+                        }}
+                        className={`w-full bg-white border p-3 text-sm font-sans focus:ring-0 transition-colors outline-none ${
+                            errors.first_name ? 'border-red-500' : 'border-black/5 focus:border-[var(--rose-gold)]'
+                        }`}
                     />
+                    {errors.first_name && (
+                        <div className="flex items-center gap-2 text-red-600 text-[10px] font-sans">
+                            <AlertCircle size={12} />
+                            {errors.first_name}
+                        </div>
+                    )}
                 </div>
                 <div className="space-y-2">
                     <label className="text-[10px] font-sans font-bold uppercase tracking-widest text-zinc-400">Last Name</label>
                     <input
-                        required
                         type="text"
                         value={formData.last_name}
-                        onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
-                        className="w-full bg-white border border-black/5 p-3 text-sm font-sans focus:ring-0 focus:border-[var(--rose-gold)] transition-colors outline-none"
+                        onChange={(e) => {
+                            setFormData({ ...formData, last_name: e.target.value });
+                            if (errors.last_name) setErrors({ ...errors, last_name: '' });
+                        }}
+                        className={`w-full bg-white border p-3 text-sm font-sans focus:ring-0 transition-colors outline-none ${
+                            errors.last_name ? 'border-red-500' : 'border-black/5 focus:border-[var(--rose-gold)]'
+                        }`}
                     />
+                    {errors.last_name && (
+                        <div className="flex items-center gap-2 text-red-600 text-[10px] font-sans">
+                            <AlertCircle size={12} />
+                            {errors.last_name}
+                        </div>
+                    )}
                 </div>
             </div>
 
             <div className="space-y-2">
                 <label className="text-[10px] font-sans font-bold uppercase tracking-widest text-zinc-400">Email Address</label>
                 <input
-                    required
                     type="email"
                     value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="w-full bg-white border border-black/5 p-3 text-sm font-sans focus:ring-0 focus:border-[var(--rose-gold)] transition-colors outline-none lowercase"
+                    onChange={(e) => {
+                        setFormData({ ...formData, email: e.target.value });
+                        if (errors.email) setErrors({ ...errors, email: '' });
+                    }}
+                    className={`w-full bg-white border p-3 text-sm font-sans focus:ring-0 transition-colors outline-none lowercase ${
+                        errors.email ? 'border-red-500' : 'border-black/5 focus:border-[var(--rose-gold)]'
+                    }`}
                 />
+                {errors.email && (
+                    <div className="flex items-center gap-2 text-red-600 text-[10px] font-sans">
+                        <AlertCircle size={12} />
+                        {errors.email}
+                    </div>
+                )}
             </div>
 
             <div className="space-y-2">
-                <label className="text-[10px] font-sans font-bold uppercase tracking-widest text-zinc-400">Company Name</label>
+                <label className="text-[10px] font-sans font-bold uppercase tracking-widest text-zinc-400">Company Name <span className="text-zinc-400">(optional)</span></label>
                 <input
                     type="text"
                     value={formData.company_name}
