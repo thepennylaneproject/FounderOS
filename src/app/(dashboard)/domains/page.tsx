@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, Globe, Activity, CheckCircle2, AlertCircle, RefreshCw, TrendingUp } from 'lucide-react';
+import { ShieldCheck, Globe, Activity, CheckCircle2, AlertCircle, RefreshCw, TrendingUp, Lock } from 'lucide-react';
 import { useUI } from '@/context/UIContext';
 import { AddDomainForm } from '@/components/domains/AddDomainForm';
 
@@ -143,8 +143,18 @@ export default function DomainsPage() {
                     )
                 }) : (
 
-                    <div className="col-span-full p-12 text-center text-zinc-400 italic border border-dashed border-black/10 rounded-sm">
-                        No domains configured. Add one to get started.
+                    <div className="col-span-full p-12 text-center border border-dashed border-black/10 rounded-sm">
+                        <div className="w-12 h-12 bg-[var(--ivory)] border border-black/5 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <Lock size={24} className="text-zinc-300" />
+                        </div>
+                        <h3 className="text-lg font-serif mb-2">No email domains yet</h3>
+                        <p className="text-sm font-sans text-zinc-400 mb-6 max-w-sm mx-auto">Add your first domain to enable secure email delivery</p>
+                        <button
+                            onClick={handleAddDomain}
+                            className="ink-button text-xs font-sans font-bold uppercase tracking-widest px-6 py-2"
+                        >
+                            Add Domain
+                        </button>
                     </div>
                 )}
             </div>

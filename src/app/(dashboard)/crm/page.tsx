@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Users, UserPlus, Heart, Sparkles, Flame, Target, HelpCircle } from 'lucide-react';
+import { Users, UserPlus, Heart, Sparkles, Flame, Target, HelpCircle, RefreshCw } from 'lucide-react';
 import { useUI } from '@/context/UIContext';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { AddContactForm } from '@/components/crm/AddContactForm';
@@ -144,7 +144,10 @@ export default function CRMPage() {
                     </thead>
                     <tbody className="divide-y divide-black/5">
                         {loading ? (
-                            <tr><td colSpan={6} className="p-12 text-center text-zinc-400 italic">Syncing CRM data...</td></tr>
+                            <tr><td colSpan={6} className="p-12 text-center">
+                                <RefreshCw size={16} className="animate-spin mx-auto mb-3 text-zinc-400" />
+                                <p className="text-sm font-sans text-zinc-400 italic">Loading contacts...</p>
+                            </td></tr>
                         ) : contacts.map(contact => (
                             <tr key={contact.id} className="hover:bg-black/[0.01] transition-colors group">
                                 <td className="p-6">

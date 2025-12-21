@@ -93,8 +93,18 @@ export default function AutomationsPage() {
                             ))}
                         </div>
                     ) : (
-                        <div className="p-12 text-center text-zinc-400 italic border border-dashed border-black/10 rounded-sm">
-                            No workflows configured. Create one to get started.
+                        <div className="p-12 text-center border border-dashed border-black/10 rounded-sm">
+                            <div className="w-12 h-12 bg-[var(--ivory)] border border-black/5 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <Zap size={24} className="text-zinc-300" />
+                            </div>
+                            <h3 className="text-lg font-serif mb-2">No workflows yet</h3>
+                            <p className="text-sm font-sans text-zinc-400 mb-6 max-w-sm mx-auto">Create your first workflow to automate repetitive tasks</p>
+                            <button
+                                onClick={handleCreateWorkflow}
+                                className="ink-button text-xs font-sans font-bold uppercase tracking-widest px-6 py-2"
+                            >
+                                Create Workflow
+                            </button>
                         </div>
                     )}
                 </section>

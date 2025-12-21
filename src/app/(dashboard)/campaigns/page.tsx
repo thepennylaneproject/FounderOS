@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Send, Plus, BarChart2, Mail, Users, Calendar, Play } from 'lucide-react';
+import { Send, Plus, BarChart2, Mail, Users, Calendar, Play, FileText } from 'lucide-react';
 import { useUI } from '@/context/UIContext';
 import { CreateCampaignForm } from '@/components/campaigns/CreateCampaignForm';
 import { CampaignDetailModal } from '@/components/campaigns/CampaignDetailModal';
@@ -109,8 +109,18 @@ export default function CampaignsPage() {
                         </div>
                     </div>
                 )) : (
-                    <div className="p-12 text-center text-zinc-400 italic border border-dashed border-black/10 rounded-sm">
-                        No campaigns yet. Create one to get started.
+                    <div className="p-12 text-center border border-dashed border-black/10 rounded-sm">
+                        <div className="w-12 h-12 bg-[var(--ivory)] border border-black/5 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <FileText size={24} className="text-zinc-300" />
+                        </div>
+                        <h3 className="text-lg font-serif mb-2">No campaigns yet</h3>
+                        <p className="text-sm font-sans text-zinc-400 mb-6 max-w-sm mx-auto">Create your first campaign to start reaching your audience</p>
+                        <button
+                            onClick={handleCreateCampaign}
+                            className="ink-button text-xs font-sans font-bold uppercase tracking-widest px-6 py-2"
+                        >
+                            Create Campaign
+                        </button>
                     </div>
                 )}
             </div>

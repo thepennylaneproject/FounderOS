@@ -126,7 +126,10 @@ export default function OverviewPage() {
                                 <Mail size={16} className="text-zinc-200 group-hover:text-[var(--rose-gold)] transition-colors" />
                             </div>
                         )) : (
-                            <p className="text-sm font-sans text-zinc-400 py-12 text-center underline underline-offset-4 decoration-black/5">No recent campaigns to display.</p>
+                            <div className="text-center py-12">
+                                <p className="text-sm font-sans text-zinc-400 italic">No campaigns yet</p>
+                                <p className="text-xs font-sans text-zinc-400 mt-2">Create your first campaign to get started</p>
+                            </div>
                         )}
                     </div>
                 </div>
@@ -162,7 +165,7 @@ export default function OverviewPage() {
                                     <p className="text-sm font-sans font-medium text-zinc-600 truncate flex-1">{w.name}</p>
                                 </div>
                             )) : (
-                                <p className="text-xs font-sans text-zinc-400 italic">No active automations in flight.</p>
+                                <p className="text-xs font-sans text-zinc-400 italic text-center py-4">No workflows yet</p>
                             )}
                         </div>
                     </div>

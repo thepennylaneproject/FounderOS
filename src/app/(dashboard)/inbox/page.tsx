@@ -62,7 +62,10 @@ export default function InboxPage() {
                 </div>
                 <div className="flex-1 overflow-y-auto divide-y divide-black/5">
                     {loading ? (
-                        <div className="p-12 text-center text-zinc-400 italic text-sm">Synchronizing infrastructure...</div>
+                        <div className="p-12 text-center">
+                            <RefreshCw size={16} className="animate-spin mx-auto mb-3 text-zinc-400" />
+                            <p className="text-sm font-sans text-zinc-400 italic">Loading emails...</p>
+                        </div>
                     ) : emails.length > 0 ? emails.map(email => (
                         <div
                             key={email.id}
@@ -77,8 +80,11 @@ export default function InboxPage() {
                             <p className="text-[10px] font-sans text-zinc-400 line-clamp-2 leading-relaxed">{email.content_preview}</p>
                         </div>
                     )) : (
-                        <div className="p-12 text-center text-zinc-400 italic text-sm mt-12">
-                            The mailbox is at peace.
+                        <div className="p-12 text-center">
+                            <div className="w-8 h-8 bg-[var(--ivory)] border border-black/5 rounded-full flex items-center justify-center mx-auto mb-3">
+                                <Mail size={16} className="text-zinc-300" />
+                            </div>
+                            <p className="text-xs font-sans text-zinc-400 italic">No messages yet</p>
                         </div>
                     )}
                 </div>
