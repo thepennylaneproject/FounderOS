@@ -8,6 +8,7 @@ export default function InboxPage() {
     const [emails, setEmails] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedEmail, setSelectedEmail] = useState<any>(null);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const { showToast } = useUI();
 
     const fetchEmails = async () => {
@@ -32,8 +33,18 @@ export default function InboxPage() {
         showToast('Synchronizing mailbox...', 'info');
     };
 
+    const handleConfirmDelete = () => {
+        if (selectedEmail) {
+            // Remove email from list
+            setEmails(emails.filter(e => e.id !== selectedEmail.id));
+            setSelectedEmail(null);
+            setShowDeleteConfirm(false);
+            showToast('Email deleted', 'success');
+        }
+    };
+
     return (
-        <div className="h-[calc(100vh-14rem)] flex shadow-sm border border-black/5 rounded-sm overflow-hidden bg-white/40 backdrop-blur-sm animate-in fade-in duration-500">
+        <div className="h-[calc(100vh-14rem)] flex shadow-sm border border-black/5 rounded-sm overflow-hidden bg-white/40 backdrop-blur-sm animate-in fade-in duration-500 relative">
             {/* Folder Sidebar */}
             <aside className="w-20 border-r border-black/5 flex flex-col items-center py-8 gap-8 bg-white/20">
                 <button className="p-3 text-[var(--forest-green)] bg-[var(--ivory)] rounded-sm border border-black/5"><Inbox size={20} /></button>
@@ -109,7 +120,7 @@ export default function InboxPage() {
                                     Reply
                                 </button>
                                 <button
-                                    onClick={() => showToast('Email deleted', 'success')}
+                                    onClick={() => setShowDeleteConfirm(true)}
                                     className="p-2 border border-black/5 hover:bg-red-50 transition-colors rounded-sm"
                                     title="Delete email"
                                 >
@@ -135,6 +146,30 @@ export default function InboxPage() {
                     </div>
                 )}
             </div>
+
+            {/* Delete Confirmation Dialog */}
+            {showDeleteConfirm && (
+                <div className="absolute inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50">
+                    <div className="bg-white p-8 rounded-sm shadow-lg max-w-sm animate-in fade-in scale-in duration-200">
+                        <h3 className="text-xl font-serif mb-3">Delete email?</h3>
+                        <p className="text-sm font-sans text-zinc-600 mb-6">This action cannot be undone. The email will be permanently deleted.</p>
+                        <div className="flex gap-3">
+                            <button
+                                onClick={handleConfirmDelete}
+                                className="flex-1 bg-red-600 text-white px-4 py-2 text-xs font-sans font-bold uppercase tracking-widest hover:bg-red-700 transition-colors rounded-sm"
+                            >
+                                Delete
+                            </button>
+                            <button
+                                onClick={() => setShowDeleteConfirm(false)}
+                                className="flex-1 border border-black/5 px-4 py-2 text-xs font-sans font-bold uppercase tracking-widest hover:bg-black/5 transition-colors rounded-sm"
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
