@@ -1,5 +1,6 @@
 import { query } from '@/lib/db';
 import { emailClient } from '@/lib/email';
+import { eventLoggingEngine } from '@/intelligence/EventLoggingEngine';
 
 export interface UserSegment { id: string; name: string; }
 export interface EmailTemplate { id: string; name: string; content?: string; subject?: string; }
@@ -53,6 +54,9 @@ export class CampaignEngine {
 
         console.log(`Starting campaign ${campaign.name} for ${contacts.rowCount} contacts.`);
 
+        // Track recipients for event logging
+        const sentRecipients: Array<{ email: string; contact_id: string }> = [];
+
         for (const contact of contacts.rows) {
             try {
                 // 1. Create log entry first to get an ID
@@ -72,8 +76,24 @@ export class CampaignEngine {
                     body: compiledBody
                 }, logId);
 
+                // Track successful send
+                sentRecipients.push({
+                    email: contact.email,
+                    contact_id: contact.id
+                });
+
             } catch (error) {
                 console.error(`Failed to send campaign email to ${contact.email}:`, error);
+            }
+        }
+
+        // Log campaign sends to event logging system
+        if (sentRecipients.length > 0) {
+            try {
+                await eventLoggingEngine.logCampaignSends(campaignId, sentRecipients);
+                console.log(`Event logged: ${sentRecipients.length} campaign sends recorded`);
+            } catch (err) {
+                console.error('Failed to log campaign sends to event system:', err);
             }
         }
 
