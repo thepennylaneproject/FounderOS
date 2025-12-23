@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Users, UserPlus, Heart, Sparkles, Flame, Target, HelpCircle, RefreshCw } from 'lucide-react';
+import { Users, UserPlus, Heart, Sparkles, Flame, Target, HelpCircle, RefreshCw, TrendingUp, X } from 'lucide-react';
 import { useUI } from '@/context/UIContext';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { AddContactForm } from '@/components/crm/AddContactForm';
@@ -23,7 +23,17 @@ interface ContactWithMomentum {
 export default function CRMPage() {
     const [contacts, setContacts] = useState<ContactWithMomentum[]>([]);
     const [loading, setLoading] = useState(true);
+    const [showMomentumExplainer, setShowMomentumExplainer] = useState(false);
     const { openModal } = useUI();
+
+    // Show momentum explainer on first CRM visit
+    useEffect(() => {
+        const hasSeenMomentumExplainer = localStorage.getItem('hasSeenMomentumExplainer');
+        if (!hasSeenMomentumExplainer) {
+            setShowMomentumExplainer(true);
+            localStorage.setItem('hasSeenMomentumExplainer', 'true');
+        }
+    }, []);
 
     const fetchContacts = async () => {
         setLoading(true);
@@ -81,6 +91,69 @@ export default function CRMPage() {
 
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
+            {/* Momentum Explainer Modal */}
+            {showMomentumExplainer && (
+                <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-sm border border-black/5 shadow-lg max-w-md w-full p-8 space-y-6 animate-in fade-in zoom-in duration-300">
+                        <div className="flex justify-between items-start">
+                            <div className="flex items-center gap-3">
+                                <div className="p-3 bg-[var(--forest-green)]/10 rounded-sm">
+                                    <TrendingUp size={20} className="text-[var(--forest-green)]" />
+                                </div>
+                                <h3 className="text-lg font-serif">What is Momentum?</h3>
+                            </div>
+                            <button
+                                onClick={() => setShowMomentumExplainer(false)}
+                                className="p-1 text-zinc-400 hover:text-zinc-600 transition-colors"
+                            >
+                                <X size={18} />
+                            </button>
+                        </div>
+
+                        <div className="space-y-4">
+                            <p className="text-sm font-sans text-zinc-600">
+                                <strong>Momentum</strong> measures your contact's recent engagement velocity—how actively they're opening and clicking your emails.
+                            </p>
+
+                            <div className="p-4 bg-[var(--forest-green)]/5 border border-[var(--forest-green)]/10 rounded-sm space-y-3">
+                                <div className="flex items-start gap-2">
+                                    <Flame size={16} className="text-orange-500 mt-0.5 flex-shrink-0" />
+                                    <div>
+                                        <p className="text-xs font-sans font-bold text-zinc-700">Score 5+</p>
+                                        <p className="text-xs font-sans text-zinc-600">Hot lead—high recent engagement</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-start gap-2">
+                                    <Sparkles size={16} className="text-yellow-500 mt-0.5 flex-shrink-0" />
+                                    <div>
+                                        <p className="text-xs font-sans font-bold text-zinc-700">Score 2-4</p>
+                                        <p className="text-xs font-sans text-zinc-600">Growing interest</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-start gap-2">
+                                    <Heart size={16} className="text-zinc-400 mt-0.5 flex-shrink-0" />
+                                    <div>
+                                        <p className="text-xs font-sans font-bold text-zinc-700">Score 0-1</p>
+                                        <p className="text-xs font-sans text-zinc-600">Not engaged recently</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <p className="text-xs font-sans text-zinc-500 italic">
+                                When a hot lead appears, click <strong>Draft</strong> to generate an AI email tailored to their engagement pattern.
+                            </p>
+                        </div>
+
+                        <button
+                            onClick={() => setShowMomentumExplainer(false)}
+                            className="w-full ink-button text-xs font-sans font-bold uppercase tracking-widest py-3"
+                        >
+                            Got It
+                        </button>
+                    </div>
+                </div>
+            )}
+
             <header className="flex justify-between items-center border-b border-black/5 pb-8">
                 <div>
                     <h2 className="text-3xl font-serif italic tracking-tight">Customer Relationship Engine</h2>
@@ -108,47 +181,59 @@ export default function CRMPage() {
                     </p>
                 </div>
                 <div className="editorial-card">
-                    <h3 className="text-sm font-sans font-bold uppercase tracking-widest text-zinc-400 mb-4">Pipeline Stage</h3>
-                    <p className="text-4xl font-serif">Growth</p>
+                    <h3 className="text-sm font-sans font-bold uppercase tracking-widest text-zinc-400 mb-4">Hot Leads</h3>
+                    <p className="text-4xl font-serif">{contacts.filter(c => c.is_hot_lead).length}</p>
                 </div>
             </div>
 
-            <div className="bg-white/40 backdrop-blur-sm border border-black/5 rounded-sm overflow-hidden">
-                <div className="p-4 border-b border-black/5 bg-white/20">
-                    <p className="text-xs font-sans text-zinc-500 italic">Showing all active contacts. Advanced search and filtering coming soon.</p>
+            {loading ? (
+                <div className="p-12 text-center text-zinc-400 italic">Preparing your contacts...</div>
+            ) : contacts.length === 0 ? (
+                <div className="p-12 text-center border border-dashed border-black/10 rounded-sm">
+                    <div className="w-12 h-12 bg-[var(--ivory)] border border-black/5 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Users size={24} className="text-zinc-300" />
+                    </div>
+                    <h3 className="text-lg font-serif mb-2">No contacts yet</h3>
+                    <p className="text-sm font-sans text-zinc-400 mb-6 max-w-sm mx-auto">Add your first contact to start tracking engagement and momentum scores</p>
+                    <button
+                        onClick={handleAddContact}
+                        className="ink-button text-xs font-sans font-bold uppercase tracking-widest px-6 py-2"
+                    >
+                        Add Contact
+                    </button>
                 </div>
-                <table className="w-full text-left border-collapse">
-                    <thead>
-                        <tr className="border-b border-black/5">
-                            <th className="p-6 text-[10px] font-sans font-bold uppercase tracking-widest text-zinc-400">Contact</th>
-                            <th className="p-6 text-[10px] font-sans font-bold uppercase tracking-widest text-zinc-400">Company</th>
-                            <th className="p-6 text-[10px] font-sans font-bold uppercase tracking-widest text-zinc-400">Stage</th>
-                            <th className="p-6 text-[10px] font-sans font-bold uppercase tracking-widest text-zinc-400">
-                                <Tooltip text="Engagement velocity based on recent opens & clicks">
-                                    <span className="flex items-center gap-1 cursor-help">
-                                        Momentum
-                                        <HelpCircle size={12} className="text-zinc-400" />
-                                    </span>
-                                </Tooltip>
-                            </th>
-                            <th className="p-6 text-[10px] font-sans font-bold uppercase tracking-widest text-zinc-400">
-                                <Tooltip text="Overall engagement health (0-100). Based on opens, clicks, and time active.">
-                                    <span className="flex items-center gap-1 cursor-help">
-                                        Score
-                                        <HelpCircle size={12} className="text-zinc-400" />
-                                    </span>
-                                </Tooltip>
-                            </th>
-                            <th className="p-6 text-[10px] font-sans font-bold uppercase tracking-widest text-zinc-400 text-right">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-black/5">
-                        {loading ? (
-                            <tr><td colSpan={6} className="p-12 text-center">
-                                <RefreshCw size={16} className="animate-spin mx-auto mb-3 text-zinc-400" />
-                                <p className="text-sm font-sans text-zinc-400 italic">Loading contacts...</p>
-                            </td></tr>
-                        ) : contacts.map(contact => (
+            ) : (
+                <div className="bg-white/40 backdrop-blur-sm border border-black/5 rounded-sm overflow-hidden">
+                    <div className="p-4 border-b border-black/5 bg-white/20">
+                        <p className="text-xs font-sans text-zinc-500 italic">Showing all active contacts. Advanced search and filtering coming soon.</p>
+                    </div>
+                    <table className="w-full text-left border-collapse">
+                        <thead>
+                            <tr className="border-b border-black/5">
+                                <th className="p-6 text-[10px] font-sans font-bold uppercase tracking-widest text-zinc-400">Contact</th>
+                                <th className="p-6 text-[10px] font-sans font-bold uppercase tracking-widest text-zinc-400">Company</th>
+                                <th className="p-6 text-[10px] font-sans font-bold uppercase tracking-widest text-zinc-400">Stage</th>
+                                <th className="p-6 text-[10px] font-sans font-bold uppercase tracking-widest text-zinc-400">
+                                    <Tooltip text="Engagement velocity based on recent opens & clicks">
+                                        <span className="flex items-center gap-1 cursor-help">
+                                            Momentum
+                                            <HelpCircle size={12} className="text-zinc-400" />
+                                        </span>
+                                    </Tooltip>
+                                </th>
+                                <th className="p-6 text-[10px] font-sans font-bold uppercase tracking-widest text-zinc-400">
+                                    <Tooltip text="Overall engagement health (0-100). Based on opens, clicks, and time active.">
+                                        <span className="flex items-center gap-1 cursor-help">
+                                            Score
+                                            <HelpCircle size={12} className="text-zinc-400" />
+                                        </span>
+                                    </Tooltip>
+                                </th>
+                                <th className="p-6 text-[10px] font-sans font-bold uppercase tracking-widest text-zinc-400 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-black/5">
+                            {contacts.map(contact => (
                             <tr key={contact.id} className="hover:bg-black/[0.01] transition-colors group">
                                 <td className="p-6">
                                     <div className="flex items-center gap-3">
@@ -205,17 +290,19 @@ export default function CRMPage() {
                                 <td className="p-6 text-right">
                                     <button
                                         onClick={() => handleAIDraft(contact)}
-                                        className="p-2 text-zinc-400 hover:text-[var(--rose-gold)] transition-colors"
+                                        className="text-xs font-sans font-bold uppercase tracking-widest text-zinc-400 hover:text-[var(--rose-gold)] transition-colors flex items-center gap-1 ml-auto"
                                         title="Generate AI Email Draft"
+                                        aria-label="Generate AI email draft"
                                     >
-                                        <Sparkles size={16} />
+                                        <Sparkles size={14} /> Draft
                                     </button>
                                 </td>
                             </tr>
                         ))}
-                    </tbody>
-                </table>
-            </div>
+                        </tbody>
+                    </table>
+                </div>
+            )}
         </div>
     );
 }

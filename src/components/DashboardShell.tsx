@@ -37,10 +37,10 @@ export const DashboardShell: React.FC<{ children: React.ReactNode }> = ({ childr
 
     const getPageTitle = () => {
         switch (pathname) {
-            case '/': return 'Founder Intelligence';
+            case '/': return 'Overview';
             case '/domains': return 'Email Domains';
             case '/campaigns': return 'Campaigns';
-            case '/crm': return 'Customer CRM';
+            case '/crm': return 'CRM';
             case '/automations': return 'Workflows';
             case '/inbox': return 'Unified Inbox';
             default: return 'FounderOS';
@@ -63,7 +63,7 @@ export const DashboardShell: React.FC<{ children: React.ReactNode }> = ({ childr
                     className="flex items-center gap-4 p-6 border border-black/5 hover:border-[var(--rose-gold)] hover:bg-black/[0.01] transition-all text-left"
                 >
                     <div className="p-3 bg-[var(--ivory)] rounded-sm border border-black/5 text-[var(--rose-gold)]"><Users size={20} /></div>
-                    <div><p className="text-sm font-sans font-bold uppercase tracking-widest leading-none mb-1">CRM Growth</p><p className="text-[10px] text-zinc-400">Add New Lead</p></div>
+                    <div><p className="text-sm font-sans font-bold uppercase tracking-widest leading-none mb-1">CRM Growth</p><p className="text-[10px] text-zinc-400">Add New Contact</p></div>
                 </button>
                 <button
                     onClick={() => openModal('Create Campaign', <CreateCampaignForm onSuccess={() => { }} />)}

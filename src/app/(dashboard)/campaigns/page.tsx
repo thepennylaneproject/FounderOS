@@ -75,7 +75,7 @@ export default function CampaignsPage() {
             <div className="grid grid-cols-1 gap-4">
                 <h3 className="text-[10px] font-sans font-bold uppercase tracking-[0.2em] text-zinc-400 mb-2">active & scheduled</h3>
                 {loading ? (
-                    <div className="p-12 text-center text-zinc-400 italic">Reading campaign journals...</div>
+                    <div className="p-12 text-center text-zinc-400 italic">Loading campaigns...</div>
                 ) : campaigns.length > 0 ? campaigns.map(campaign => (
                     <div
                         key={campaign.id}

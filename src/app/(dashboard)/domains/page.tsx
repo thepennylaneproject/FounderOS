@@ -82,7 +82,7 @@ export default function DomainsPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {loading ? (
-                    <div className="col-span-full p-12 text-center text-zinc-400 italic">Auditing infrastructure...</div>
+                    <div className="col-span-full p-12 text-center text-zinc-400 italic">Loading domains...</div>
                 ) : domains.length > 0 ? domains.map(domain => {
                     const intel = getDeliverabilityForDomain(domain.domain_name);
                     return (

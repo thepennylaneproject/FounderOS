@@ -47,7 +47,7 @@ export const AddContactForm: React.FC<{ onSuccess: () => void }> = ({ onSuccess 
             setCreated(data);
         } catch (error) {
             console.error(error);
-            showToast('System error: Contact rejected', 'error');
+            showToast('Something went wrong. Please check your email and try again.', 'error');
         } finally {
             setSubmitting(false);
         }
