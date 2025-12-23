@@ -56,20 +56,35 @@ export default function CampaignsPage() {
             </header>
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-                {[
-                    { label: 'Active', value: campaigns.length, icon: Send },
-                    { label: 'Open Rate', value: '—', icon: Mail },
-                    { label: 'Conversions', value: '0', icon: Users },
-                    { label: 'Velocity', value: 'Stable', icon: BarChart2 }
-                ].map((stat) => (
-                    <div key={stat.label} className="editorial-card group hover:border-[var(--forest-green)] transition-all">
-                        <div className="flex justify-between items-center mb-2">
-                            <stat.icon size={16} className="text-[var(--forest-green)]" />
-                            <span className="text-[10px] font-sans font-bold tracking-widest uppercase text-zinc-400 group-hover:text-[var(--ink)] transition-colors">{stat.label}</span>
+                {(() => {
+                    // Calculate aggregate metrics
+                    const activeCampaigns = campaigns.filter(c => c.status === 'active').length;
+                    const totalMetrics = campaigns.reduce((acc, c) => ({
+                        opens: acc.opens + (c.metrics?.openCount || 0),
+                        sent: acc.sent + (c.metrics?.totalSent || 0),
+                        clicks: acc.clicks + (c.metrics?.clickCount || 0)
+                    }), { opens: 0, sent: 0, clicks: 0 });
+
+                    const avgOpenRate = totalMetrics.sent > 0
+                        ? ((totalMetrics.opens / totalMetrics.sent) * 100).toFixed(1) + '%'
+                        : '—';
+                    const totalClicks = totalMetrics.clicks;
+
+                    return [
+                        { label: 'Active', value: activeCampaigns.toString(), icon: Send },
+                        { label: 'Open Rate', value: avgOpenRate, icon: Mail },
+                        { label: 'Total Clicks', value: totalClicks.toString(), icon: Users },
+                        { label: 'Total Sent', value: totalMetrics.sent.toString(), icon: BarChart2 }
+                    ].map((stat) => (
+                        <div key={stat.label} className="editorial-card group hover:border-[var(--forest-green)] transition-all">
+                            <div className="flex justify-between items-center mb-2">
+                                <stat.icon size={16} className="text-[var(--forest-green)]" />
+                                <span className="text-[10px] font-sans font-bold tracking-widest uppercase text-zinc-400 group-hover:text-[var(--ink)] transition-colors">{stat.label}</span>
+                            </div>
+                            <p className="text-2xl font-serif">{stat.value}</p>
                         </div>
-                        <p className="text-2xl font-serif">{stat.value}</p>
-                    </div>
-                ))}
+                    ));
+                })()}
             </div>
 
             <div className="grid grid-cols-1 gap-4">
@@ -96,6 +111,12 @@ export default function CampaignsPage() {
                                     {campaign.status}
                                 </p>
                             </div>
+                            {campaign.metrics && campaign.metrics.totalSent > 0 && (
+                                <div className="text-right px-4 hidden md:block">
+                                    <p className="text-xs font-sans font-bold uppercase tracking-widest text-zinc-400 mb-1">Open Rate</p>
+                                    <p className="text-sm font-sans font-medium text-zinc-600">{campaign.metrics.openRate}</p>
+                                </div>
+                            )}
                             <button
                                 className="ink-button-ghost p-2 opacity-0 group-hover:opacity-100 transition-opacity"
                                 onClick={(e) => {

@@ -41,7 +41,7 @@ export const OnboardingWelcome: React.FC<OnboardingWelcomeProps> = ({
                     <h2 className="text-3xl font-serif">Welcome to FounderOS</h2>
                 </div>
                 <p className="text-lg font-sans text-zinc-600 max-w-2xl">
-                    Your all-in-one platform for managing domains, email campaigns, and customer relationships.
+                    All-in-one email infrastructure, CRM, and marketing automation for startup founders. Control your own growth without vendor lock-in.
                 </p>
             </div>
 

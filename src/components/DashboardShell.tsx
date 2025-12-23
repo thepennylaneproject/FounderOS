@@ -116,7 +116,12 @@ export const DashboardShell: React.FC<{ children: React.ReactNode }> = ({ childr
                 <header className="px-12 pt-12 flex justify-between items-end mb-8 sticky top-0 bg-[var(--ivory)]/80 backdrop-blur-md z-10 pb-4 border-b border-transparent">
                     <div>
                         <h2 className="text-4xl font-serif mb-1 tracking-tight">{getPageTitle()}</h2>
-                        <p className="text-xs font-sans text-zinc-500 tracking-tight">System Status: <span className="text-[var(--forest-green)] font-medium underline underline-offset-4 decoration-black/5">Fully Operational</span></p>
+                        <p className="text-xs font-sans text-zinc-500 tracking-tight">
+                            {pathname === '/' ? 'All-in-one email + CRM for startup founders' : 'System Status: '}
+                            <span className="text-[var(--forest-green)] font-medium underline underline-offset-4 decoration-black/5">
+                                {pathname === '/' ? '' : 'Fully Operational'}
+                            </span>
+                        </p>
                     </div>
                     <button
                         onClick={handleQuickLaunch}

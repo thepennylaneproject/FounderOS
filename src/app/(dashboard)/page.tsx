@@ -10,12 +10,14 @@ import {
     ChevronRight,
     TrendingUp,
     Mail,
-    MoreVertical
+    MoreVertical,
+    AlertCircle
 } from 'lucide-react';
 
 import { useUI } from '@/context/UIContext';
 import { BriefPanel } from '@/components/intelligence/BriefPanel';
 import { OnboardingWelcome } from '@/components/dashboard/OnboardingWelcome';
+import { CampaignDetailModal } from '@/components/campaigns/CampaignDetailModal';
 
 
 const StatCard: React.FC<{ label: string, value: string | number, trend: string, icon: any }> = ({ label, value, trend, icon: Icon }) => (
@@ -34,7 +36,7 @@ const StatCard: React.FC<{ label: string, value: string | number, trend: string,
 );
 
 export default function OverviewPage() {
-    const { showToast } = useUI();
+    const { showToast, openModal } = useUI();
     const [stats, setStats] = useState({
         domains: 0,
         contacts: 0,
@@ -79,6 +81,13 @@ export default function OverviewPage() {
         }
     };
 
+    const handleOpenCampaign = (campaign: any) => {
+        openModal(
+            'Review & Send Campaign',
+            <CampaignDetailModal campaign={campaign} onSuccess={fetchData} />
+        );
+    };
+
     useEffect(() => {
         fetchData();
     }, []);
@@ -117,13 +126,17 @@ export default function OverviewPage() {
 
                     <div className="space-y-0 italic font-serif">
                         {campaigns.length > 0 ? campaigns.map((c, i) => (
-                            <div key={c.id} className="group flex items-center gap-8 py-6 border-b border-black/5 hover:bg-black/[0.02] transition-colors cursor-pointer px-4 -mx-4">
+                            <div key={c.id} className="group flex items-center gap-8 py-6 border-b border-black/5 hover:bg-black/[0.02] transition-colors cursor-pointer px-4 -mx-4" onClick={() => handleOpenCampaign(c)}>
                                 <span className="text-xs font-sans not-italic font-bold text-zinc-300">{(i + 1).toString().padStart(2, '0')}</span>
                                 <div className="flex-1 min-w-0">
                                     <h4 className="text-lg leading-tight group-hover:translate-x-1 transition-transform">{c.name}</h4>
                                     <p className="text-sm font-sans not-italic text-zinc-500 mt-1">{c.type} — {c.status}</p>
                                 </div>
-                                <Mail size={16} className="text-zinc-200 group-hover:text-[var(--rose-gold)] transition-colors" />
+                                {c.status === 'draft' ? (
+                                    <button className="px-3 py-1 text-xs font-sans font-bold uppercase tracking-widest text-white bg-amber-600 hover:bg-amber-700 transition-colors rounded" onClick={(e) => { e.stopPropagation(); handleOpenCampaign(c); }}>Send</button>
+                                ) : (
+                                    <Mail size={16} className="text-zinc-200 group-hover:text-[var(--rose-gold)] transition-colors" />
+                                )}
                             </div>
                         )) : (
                             <div className="text-center py-12">

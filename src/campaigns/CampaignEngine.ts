@@ -16,6 +16,13 @@ export interface Campaign {
     body: string;
     status?: string;
     scheduled_at?: Date;
+    metrics?: {
+        totalSent: number;
+        openCount: number;
+        openRate: string;
+        clickCount: number;
+        clickRate: string;
+    };
 }
 
 export class CampaignEngine {
@@ -37,7 +44,39 @@ export class CampaignEngine {
 
     async getAllCampaigns() {
         const res = await query('SELECT * FROM campaigns ORDER BY created_at DESC');
-        return res.rows;
+        const campaigns = res.rows;
+
+        // Enrich campaigns with metrics
+        const enriched = await Promise.all(campaigns.map(async (campaign) => {
+            const metrics = await this.getCampaignMetrics(campaign.id);
+            return { ...campaign, metrics };
+        }));
+
+        return enriched;
+    }
+
+    private async getCampaignMetrics(campaignId: string) {
+        const res = await query(`
+            SELECT
+                COUNT(*) as total_sent,
+                SUM(CASE WHEN status = 'opened' THEN 1 ELSE 0 END) as open_count,
+                SUM(CASE WHEN status = 'clicked' THEN 1 ELSE 0 END) as click_count
+            FROM email_logs
+            WHERE campaign_id = $1
+        `, [campaignId]);
+
+        const row = res.rows[0];
+        const totalSent = parseInt(row.total_sent) || 0;
+        const openCount = parseInt(row.open_count) || 0;
+        const clickCount = parseInt(row.click_count) || 0;
+
+        return {
+            totalSent,
+            openCount,
+            openRate: totalSent > 0 ? ((openCount / totalSent) * 100).toFixed(1) + '%' : '0%',
+            clickCount,
+            clickRate: totalSent > 0 ? ((clickCount / totalSent) * 100).toFixed(1) + '%' : '0%'
+        };
     }
 
     // Execution
