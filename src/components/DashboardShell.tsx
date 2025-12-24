@@ -92,9 +92,10 @@ export const DashboardShell: React.FC<{ children: React.ReactNode }> = ({ childr
                     <SidebarItem icon={Zap} label="Overview" href="/" active={pathname === '/'} />
                     <SidebarItem icon={ShieldCheck} label="Email Domains" href="/domains" active={pathname === '/domains'} />
                     <SidebarItem icon={Send} label="Campaigns" href="/campaigns" active={pathname === '/campaigns'} />
-                    <SidebarItem icon={Inbox} label="Unified Inbox" href="/inbox" active={pathname === '/inbox'} />
                     <SidebarItem icon={Workflow} label="Workflows" href="/automations" active={pathname === '/automations'} />
                     <SidebarItem icon={Users} label="CRM" href="/crm" active={pathname === '/crm'} />
+                    {/* Inbox feature deferred - implementation incomplete */}
+                    {/* <SidebarItem icon={Inbox} label="Unified Inbox" href="/inbox" active={pathname === '/inbox'} /> */}
                 </nav>
 
                 <div className="mt-auto p-6 border-t border-black/5">

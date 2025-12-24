@@ -14,7 +14,8 @@ export const AddContactForm: React.FC<{ onSuccess: () => void }> = ({ onSuccess 
         email: '',
         first_name: '',
         last_name: '',
-        company_name: ''
+        company_name: '',
+        stage: 'lead' // Default to 'lead'
     });
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -41,13 +42,19 @@ export const AddContactForm: React.FC<{ onSuccess: () => void }> = ({ onSuccess 
                 body: JSON.stringify(formData),
             });
 
-            if (!res.ok) throw new Error('Failed to create contact');
-
             const data = await res.json();
+
+            if (!res.ok) {
+                // Show API error message if available
+                const errorMessage = data.error || 'Failed to create contact. Please try again.';
+                showToast(errorMessage, 'error');
+                return;
+            }
+
             setCreated(data);
         } catch (error) {
             console.error(error);
-            showToast('Something went wrong. Please check your email and try again.', 'error');
+            showToast('Something went wrong. Please try again.', 'error');
         } finally {
             setSubmitting(false);
         }
@@ -183,6 +190,20 @@ export const AddContactForm: React.FC<{ onSuccess: () => void }> = ({ onSuccess 
                     onChange={(e) => setFormData({ ...formData, company_name: e.target.value })}
                     className="w-full bg-white border border-black/5 p-3 text-sm font-sans focus:ring-0 focus:border-[var(--rose-gold)] transition-colors outline-none"
                 />
+            </div>
+
+            <div className="space-y-2">
+                <label className="text-[10px] font-sans font-bold uppercase tracking-widest text-zinc-400">Pipeline Stage</label>
+                <select
+                    value={formData.stage}
+                    onChange={(e) => setFormData({ ...formData, stage: e.target.value })}
+                    className="w-full bg-white border border-black/5 p-3 text-sm font-sans focus:ring-0 focus:border-[var(--rose-gold)] transition-colors outline-none appearance-none"
+                >
+                    <option value="lead">Lead</option>
+                    <option value="prospect">Prospect</option>
+                    <option value="customer">Customer</option>
+                    <option value="churned">Churned</option>
+                </select>
             </div>
 
             <div className="pt-4">
