@@ -36,3 +36,18 @@ export {
   type WizardStep3Data,
   type WizardStep4Data,
 } from './BrandVoice';
+
+// Copywriter Agent
+export {
+  CopywriterService,
+  getCopywriter,
+  type SubjectLineRequest,
+  type EmailBodyRequest,
+  type CTARequest,
+  type EmailPurpose,
+  type EmailFormat,
+  type ToneStyle,
+  type SubjectLineVariant,
+  type GeneratedEmailBody,
+  type CTAVariant,
+} from './Copywriter';
