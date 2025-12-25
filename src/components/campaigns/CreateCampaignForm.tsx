@@ -2,11 +2,12 @@
 
 import React, { useState } from 'react';
 import { useUI } from '@/context/UIContext';
-import { Send, Layout, Mail } from 'lucide-react';
+import { Send, Layout, Mail, CheckCircle2, BarChart2, Zap, ArrowRight, Eye } from 'lucide-react';
 
 export const CreateCampaignForm: React.FC<{ onSuccess: () => void }> = ({ onSuccess }) => {
     const { showToast, closeModal } = useUI();
     const [submitting, setSubmitting] = useState(false);
+    const [created, setCreated] = useState<{ name: string } | null>(null);
     const [formData, setFormData] = useState({
         name: '',
         type: 'marketing',
@@ -27,9 +28,7 @@ export const CreateCampaignForm: React.FC<{ onSuccess: () => void }> = ({ onSucc
 
             if (!res.ok) throw new Error('Failed to create campaign');
 
-            showToast('Campaign drafted successfully', 'success');
-            onSuccess();
-            closeModal();
+            setCreated({ name: formData.name });
         } catch (error) {
             console.error(error);
             showToast('Failed to create campaign', 'error');
@@ -38,6 +37,71 @@ export const CreateCampaignForm: React.FC<{ onSuccess: () => void }> = ({ onSucc
         }
     };
 
+    const handleClose = () => {
+        onSuccess();
+        closeModal();
+    };
+
+    // Success screen
+    if (created) {
+        return (
+            <div className="space-y-6">
+                <div className="text-center py-4">
+                    <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <CheckCircle2 size={24} className="text-green-600" />
+                    </div>
+                    <h3 className="text-2xl font-serif mb-2">Campaign Created</h3>
+                    <p className="text-sm font-sans text-zinc-600">
+                        "{created.name}" is ready to send.
+                    </p>
+                </div>
+
+                <div className="p-4 bg-blue-50 border border-blue-200 rounded-sm space-y-4">
+                    <p className="text-sm font-sans font-bold text-blue-900">What's Next?</p>
+                    <div className="space-y-3">
+                        <div className="flex items-start gap-3">
+                            <Eye size={14} className="text-blue-600 mt-1 flex-shrink-0" />
+                            <div>
+                                <p className="text-[10px] font-sans font-bold text-blue-900">Review and send</p>
+                                <p className="text-[9px] font-sans text-blue-800 mt-0.5">Open the campaign to review your message and send to your audience</p>
+                            </div>
+                        </div>
+                        <div className="flex items-start gap-3">
+                            <BarChart2 size={14} className="text-blue-600 mt-1 flex-shrink-0" />
+                            <div>
+                                <p className="text-[10px] font-sans font-bold text-blue-900">Monitor engagement</p>
+                                <p className="text-[9px] font-sans text-blue-800 mt-0.5">Track opens, clicks, and conversions in real-time from the campaigns page</p>
+                            </div>
+                        </div>
+                        <div className="flex items-start gap-3">
+                            <Zap size={14} className="text-blue-600 mt-1 flex-shrink-0" />
+                            <div>
+                                <p className="text-[10px] font-sans font-bold text-blue-900">Refine and resend</p>
+                                <p className="text-[9px] font-sans text-blue-800 mt-0.5">Use insights to improve your next campaign</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="flex gap-3">
+                    <button
+                        onClick={handleClose}
+                        className="flex-1 ink-button flex items-center justify-center gap-2 text-xs font-sans font-bold uppercase tracking-widest p-4"
+                    >
+                        View in Campaigns <ArrowRight size={14} />
+                    </button>
+                    <button
+                        onClick={handleClose}
+                        className="flex-1 border border-black/5 px-4 py-3 text-xs font-sans font-bold uppercase tracking-widest hover:bg-black/5 transition-colors rounded-sm"
+                    >
+                        Done
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
+    // Form
     return (
         <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">

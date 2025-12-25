@@ -94,10 +94,34 @@ export const DomainSetupGuide: React.FC<DomainSetupGuideProps> = ({ domain, onCo
                 </div>
             </div>
 
+            {/* Provider-Specific Help */}
+            <div className="space-y-3 p-4 border border-black/5 rounded-sm bg-amber-50">
+                <h4 className="text-sm font-sans font-bold text-amber-900 mb-2">Need Provider-Specific Help?</h4>
+                <div className="space-y-2 ml-0">
+                    {[
+                        { name: 'GoDaddy', url: 'https://www.godaddy.com/help/add-a-txt-record-19236' },
+                        { name: 'Namecheap', url: 'https://www.namecheap.com/support/knowledgebase/article.aspx/432/2237/how-do-i-add-txt-records-for-my-domain/' },
+                        { name: 'Route53 (AWS)', url: 'https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/ResourceRecordTypes.html' },
+                        { name: 'Cloudflare', url: 'https://developers.cloudflare.com/dns/manage-dns-records/how-to/create-dns-records/' }
+                    ].map(provider => (
+                        <a
+                            key={provider.name}
+                            href={provider.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 text-[10px] font-sans font-bold uppercase tracking-widest text-amber-700 hover:text-amber-900 hover:underline transition-colors"
+                        >
+                            <ExternalLink size={12} />
+                            {provider.name} DNS Setup Guide
+                        </a>
+                    ))}
+                </div>
+            </div>
+
             {/* Help */}
             <div className="p-3 bg-zinc-50 border border-black/5 rounded-sm text-center">
                 <p className="text-[10px] font-sans text-zinc-600">
-                    Need help? Most domain registrars have similar DNS record management interfaces.
+                    Need help? Most domain registrars have similar DNS record management interfaces. Links above have provider-specific guides.
                 </p>
             </div>
 

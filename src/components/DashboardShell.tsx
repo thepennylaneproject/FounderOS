@@ -37,10 +37,10 @@ export const DashboardShell: React.FC<{ children: React.ReactNode }> = ({ childr
 
     const getPageTitle = () => {
         switch (pathname) {
-            case '/': return 'Founder Intelligence';
+            case '/': return 'Overview';
             case '/domains': return 'Email Domains';
             case '/campaigns': return 'Campaigns';
-            case '/crm': return 'Customer CRM';
+            case '/crm': return 'CRM';
             case '/automations': return 'Workflows';
             case '/inbox': return 'Unified Inbox';
             default: return 'FounderOS';
@@ -63,7 +63,7 @@ export const DashboardShell: React.FC<{ children: React.ReactNode }> = ({ childr
                     className="flex items-center gap-4 p-6 border border-black/5 hover:border-[var(--rose-gold)] hover:bg-black/[0.01] transition-all text-left"
                 >
                     <div className="p-3 bg-[var(--ivory)] rounded-sm border border-black/5 text-[var(--rose-gold)]"><Users size={20} /></div>
-                    <div><p className="text-sm font-sans font-bold uppercase tracking-widest leading-none mb-1">CRM Growth</p><p className="text-[10px] text-zinc-400">Add New Lead</p></div>
+                    <div><p className="text-sm font-sans font-bold uppercase tracking-widest leading-none mb-1">CRM Growth</p><p className="text-[10px] text-zinc-400">Add New Contact</p></div>
                 </button>
                 <button
                     onClick={() => openModal('Create Campaign', <CreateCampaignForm onSuccess={() => { }} />)}
@@ -92,9 +92,10 @@ export const DashboardShell: React.FC<{ children: React.ReactNode }> = ({ childr
                     <SidebarItem icon={Zap} label="Overview" href="/" active={pathname === '/'} />
                     <SidebarItem icon={ShieldCheck} label="Email Domains" href="/domains" active={pathname === '/domains'} />
                     <SidebarItem icon={Send} label="Campaigns" href="/campaigns" active={pathname === '/campaigns'} />
-                    <SidebarItem icon={Inbox} label="Unified Inbox" href="/inbox" active={pathname === '/inbox'} />
                     <SidebarItem icon={Workflow} label="Workflows" href="/automations" active={pathname === '/automations'} />
                     <SidebarItem icon={Users} label="CRM" href="/crm" active={pathname === '/crm'} />
+                    {/* Inbox feature deferred - implementation incomplete */}
+                    {/* <SidebarItem icon={Inbox} label="Unified Inbox" href="/inbox" active={pathname === '/inbox'} /> */}
                 </nav>
 
                 <div className="mt-auto p-6 border-t border-black/5">
@@ -116,7 +117,12 @@ export const DashboardShell: React.FC<{ children: React.ReactNode }> = ({ childr
                 <header className="px-12 pt-12 flex justify-between items-end mb-8 sticky top-0 bg-[var(--ivory)]/80 backdrop-blur-md z-10 pb-4 border-b border-transparent">
                     <div>
                         <h2 className="text-4xl font-serif mb-1 tracking-tight">{getPageTitle()}</h2>
-                        <p className="text-xs font-sans text-zinc-500 tracking-tight">System Status: <span className="text-[var(--forest-green)] font-medium underline underline-offset-4 decoration-black/5">Fully Operational</span></p>
+                        <p className="text-xs font-sans text-zinc-500 tracking-tight">
+                            {pathname === '/' ? 'All-in-one email + CRM for startup founders' : 'System Status: '}
+                            <span className="text-[var(--forest-green)] font-medium underline underline-offset-4 decoration-black/5">
+                                {pathname === '/' ? '' : 'Fully Operational'}
+                            </span>
+                        </p>
                     </div>
                     <button
                         onClick={handleQuickLaunch}

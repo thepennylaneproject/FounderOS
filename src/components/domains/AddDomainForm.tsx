@@ -28,7 +28,7 @@ export const AddDomainForm: React.FC<{ onSuccess: () => void }> = ({ onSuccess }
             setCreatedDomain(domainName);
         } catch (error) {
             console.error(error);
-            showToast('Infrastructure error: Domain rejected', 'error');
+            showToast('We couldn\'t add this domain. Check the domain name and try again.', 'error');
         } finally {
             setSubmitting(false);
         }

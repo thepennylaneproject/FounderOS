@@ -52,11 +52,26 @@ export default function AutomationsPage() {
                 </button>
             </header>
 
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+                <div className="editorial-card">
+                    <h3 className="text-sm font-sans font-bold uppercase tracking-widest text-zinc-400 mb-4">Active Workflows</h3>
+                    <p className="text-4xl font-serif">{workflows.filter(w => w.status === 'active').length}</p>
+                </div>
+                <div className="editorial-card">
+                    <h3 className="text-sm font-sans font-bold uppercase tracking-widest text-zinc-400 mb-4">Total Workflows</h3>
+                    <p className="text-4xl font-serif">{workflows.length}</p>
+                </div>
+                <div className="editorial-card">
+                    <h3 className="text-sm font-sans font-bold uppercase tracking-widest text-zinc-400 mb-4">Trigger Types</h3>
+                    <p className="text-4xl font-serif">{new Set(workflows.map(w => w.trigger_type)).size}</p>
+                </div>
+            </div>
+
             <div className="grid grid-cols-1 gap-8">
                 <section>
                     <h3 className="text-[10px] font-sans font-bold uppercase tracking-[0.2em] text-zinc-400 mb-6 underline underline-offset-8 decoration-black/5">Active Workflows</h3>
                     {loading ? (
-                        <div className="p-12 text-center text-zinc-400 italic">Loading workflows...</div>
+                        <div className="p-12 text-center text-zinc-400 italic">Preparing your workflows...</div>
                     ) : workflows.length > 0 ? (
                         <div className="space-y-4">
                             {workflows.map(wf => (
