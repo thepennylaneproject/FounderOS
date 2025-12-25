@@ -51,3 +51,17 @@ export {
   type GeneratedEmailBody,
   type CTAVariant,
 } from './Copywriter';
+
+// Visual Generator
+export {
+  VisualGeneratorService,
+  getVisualGenerator,
+  IMAGE_TEMPLATES,
+  type ImageProvider,
+  type ImageStyle,
+  type ImagePurpose,
+  type AspectRatio,
+  type ImageGenerationRequest,
+  type GeneratedImage,
+  type ImageTemplate,
+} from './VisualGenerator';
