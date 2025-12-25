@@ -65,3 +65,19 @@ export {
   type GeneratedImage,
   type ImageTemplate,
 } from './VisualGenerator';
+
+// Personalization Engine
+export {
+  PersonalizationEngine,
+  getPersonalizationEngine,
+  STANDARD_MERGE_TAGS,
+  type ContactData,
+  type MergeTag,
+  type MergeTagCategory,
+  type DynamicBlock,
+  type ContentRule,
+  type RuleCondition,
+  type ConditionOperator,
+  type PersonalizationSuggestion,
+  type PersonalizedContent,
+} from './PersonalizationEngine';
