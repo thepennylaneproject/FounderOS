@@ -81,3 +81,23 @@ export {
   type PersonalizationSuggestion,
   type PersonalizedContent,
 } from './PersonalizationEngine';
+
+// Campaign Strategist
+export {
+  CampaignStrategist,
+  getCampaignStrategist,
+  type StrategyRequest,
+  type CampaignGoal,
+  type CampaignStrategy,
+  type EmailInSequence,
+  type SendTiming,
+  type SendingSchedule,
+  type SegmentationStrategy,
+  type AudienceSegment,
+  type ABTestPlan,
+  type ABVariant,
+  type KPITarget,
+  type StrategyRecommendation,
+  type ProjectedMetrics,
+  type CampaignIdea,
+} from './CampaignStrategist';
