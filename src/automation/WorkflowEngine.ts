@@ -1,6 +1,7 @@
 import { query } from '@/lib/db';
 import { emailClient } from '@/lib/email';
 import { modernCRM } from '@/crm/CustomerRelationshipEngine';
+import { eventLoggingEngine } from '@/intelligence/EventLoggingEngine';
 
 export interface WorkflowAction {
     action: string;
@@ -50,8 +51,45 @@ export class WorkflowAutomation {
             console.log(`Executing workflow: ${wf.name}`);
             const actions = wf.config as WorkflowAction[];
 
+            let executionResult: 'success' | 'failed' | 'partial' = 'success';
+            let actionErrors: string[] = [];
+            let totalActions = 0;
+
             for (const action of actions) {
-                await this.executeAction(action, context);
+                try {
+                    totalActions++;
+                    await this.executeAction(action, context);
+                } catch (err) {
+                    executionResult = 'failed';
+                    actionErrors.push(err instanceof Error ? err.message : String(err));
+                    console.error(`Action ${action.action} failed:`, err);
+                }
+            }
+
+            // Log workflow execution to event system
+            if (totalActions > 0) {
+                try {
+                    // Determine primary action type from first action
+                    const primaryAction = actions[0]?.action || 'unknown';
+
+                    await eventLoggingEngine.logWorkflowExecution(
+                        wf.id,
+                        event,
+                        context.contactId,
+                        primaryAction,
+                        executionResult,
+                        context.contactId ? 1 : 0,
+                        {
+                            workflow_name: wf.name,
+                            total_actions: totalActions,
+                            actions_executed: actions.map(a => a.action)
+                        },
+                        actionErrors.length > 0 ? actionErrors.join('; ') : undefined
+                    );
+                    console.log(`Event logged: workflow ${wf.name} execution recorded`);
+                } catch (err) {
+                    console.error('Failed to log workflow execution to event system:', err);
+                }
             }
         }
     }
