@@ -92,6 +92,51 @@ export class ModernCRM {
         const res = await query('SELECT * FROM contacts ORDER BY created_at DESC');
         return res.rows;
     }
+
+    async updateContact(id: string, updates: Partial<Contact>): Promise<Contact> {
+        const fields: string[] = [];
+        const values: any[] = [];
+        let paramIndex = 1;
+
+        if (updates.email !== undefined) {
+            fields.push(`email = $${paramIndex++}`);
+            values.push(updates.email);
+        }
+        if (updates.first_name !== undefined) {
+            fields.push(`first_name = $${paramIndex++}`);
+            values.push(updates.first_name);
+        }
+        if (updates.last_name !== undefined) {
+            fields.push(`last_name = $${paramIndex++}`);
+            values.push(updates.last_name);
+        }
+        if (updates.company_name !== undefined) {
+            fields.push(`company_name = $${paramIndex++}`);
+            values.push(updates.company_name);
+        }
+        if (updates.stage !== undefined) {
+            fields.push(`stage = $${paramIndex++}`);
+            values.push(updates.stage);
+        }
+
+        if (fields.length === 0) {
+            return this.getContact(id);
+        }
+
+        fields.push('updated_at = CURRENT_TIMESTAMP');
+        values.push(id);
+
+        const res = await query(
+            `UPDATE contacts SET ${fields.join(', ')} WHERE id = $${paramIndex} RETURNING *`,
+            values
+        );
+        return res.rows[0];
+    }
+
+    async deleteContact(id: string): Promise<void> {
+        await query('DELETE FROM email_logs WHERE contact_id = $1', [id]);
+        await query('DELETE FROM contacts WHERE id = $1', [id]);
+    }
 }
 
 export const modernCRM = new ModernCRM();

@@ -112,6 +112,51 @@ export class CampaignEngine {
             return data[key.trim()] || match;
         });
     }
+
+    async updateCampaign(id: string, updates: Partial<Campaign>): Promise<Campaign> {
+        const fields: string[] = [];
+        const values: any[] = [];
+        let paramIndex = 1;
+
+        if (updates.name !== undefined) {
+            fields.push(`name = $${paramIndex++}`);
+            values.push(updates.name);
+        }
+        if (updates.type !== undefined) {
+            fields.push(`type = $${paramIndex++}`);
+            values.push(updates.type);
+        }
+        if (updates.subject !== undefined) {
+            fields.push(`subject = $${paramIndex++}`);
+            values.push(updates.subject);
+        }
+        if (updates.body !== undefined) {
+            fields.push(`body = $${paramIndex++}`);
+            values.push(updates.body);
+        }
+        if (updates.status !== undefined) {
+            fields.push(`status = $${paramIndex++}`);
+            values.push(updates.status);
+        }
+
+        if (fields.length === 0) {
+            return this.getCampaign(id);
+        }
+
+        fields.push('updated_at = CURRENT_TIMESTAMP');
+        values.push(id);
+
+        const res = await query(
+            `UPDATE campaigns SET ${fields.join(', ')} WHERE id = $${paramIndex} RETURNING *`,
+            values
+        );
+        return res.rows[0];
+    }
+
+    async deleteCampaign(id: string): Promise<void> {
+        await query('DELETE FROM email_logs WHERE campaign_id = $1', [id]);
+        await query('DELETE FROM campaigns WHERE id = $1', [id]);
+    }
 }
 
 export const campaignEngine = new CampaignEngine();

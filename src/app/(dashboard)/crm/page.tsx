@@ -1,11 +1,12 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Users, UserPlus, Heart, Sparkles, Flame, Target, HelpCircle, RefreshCw } from 'lucide-react';
+import { Users, UserPlus, Heart, Sparkles, Flame, Target, HelpCircle, RefreshCw, Edit2, Trash2 } from 'lucide-react';
 import { useUI } from '@/context/UIContext';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { AddContactForm } from '@/components/crm/AddContactForm';
 import { AIDraftModal } from '@/components/crm/AIDraftModal';
+import { EditContactModal } from '@/components/crm/EditContactModal';
 
 interface ContactWithMomentum {
     id: string;
@@ -23,7 +24,9 @@ interface ContactWithMomentum {
 export default function CRMPage() {
     const [contacts, setContacts] = useState<ContactWithMomentum[]>([]);
     const [loading, setLoading] = useState(true);
-    const { openModal } = useUI();
+    const [deleteConfirm, setDeleteConfirm] = useState<ContactWithMomentum | null>(null);
+    const [deleting, setDeleting] = useState(false);
+    const { openModal, showToast } = useUI();
 
     const fetchContacts = async () => {
         setLoading(true);
@@ -79,6 +82,32 @@ export default function CRMPage() {
         );
     };
 
+    const handleEditContact = (contact: ContactWithMomentum) => {
+        openModal(
+            'Edit Contact',
+            <EditContactModal contact={contact} onSuccess={fetchContacts} />
+        );
+    };
+
+    const handleDeleteContact = async () => {
+        if (!deleteConfirm) return;
+        setDeleting(true);
+        try {
+            const res = await fetch(`/api/contacts/${deleteConfirm.id}`, {
+                method: 'DELETE'
+            });
+            if (!res.ok) throw new Error('Failed to delete contact');
+            showToast('Contact deleted successfully', 'success');
+            setContacts(contacts.filter(c => c.id !== deleteConfirm.id));
+            setDeleteConfirm(null);
+        } catch (error) {
+            console.error(error);
+            showToast('Failed to delete contact', 'error');
+        } finally {
+            setDeleting(false);
+        }
+    };
+
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
             <header className="flex justify-between items-center border-b border-black/5 pb-8">
@@ -86,12 +115,26 @@ export default function CRMPage() {
                     <h2 className="text-3xl font-serif italic tracking-tight">Customer Relationship Engine</h2>
                     <p className="text-sm font-sans text-zinc-500 mt-1">Manage leads, track engagement, and score health.</p>
                 </div>
-                <button
-                    onClick={handleAddContact}
-                    className="ink-button flex items-center gap-2 text-xs font-sans font-bold uppercase tracking-widest px-6 py-3"
-                >
-                    <UserPlus size={16} /> Add Contact
-                </button>
+                <div className="flex items-center gap-3">
+                    {contacts.length > 0 && (
+                        <button
+                            onClick={() => {
+                                const hotLead = contacts.find(c => c.is_hot_lead);
+                                const target = hotLead || contacts[0];
+                                handleAIDraft(target);
+                            }}
+                            className="flex items-center gap-2 text-xs font-sans font-bold uppercase tracking-widest px-6 py-3 border border-[var(--rose-gold)] text-[var(--rose-gold)] hover:bg-[var(--rose-gold)] hover:text-white transition-colors"
+                        >
+                            <Sparkles size={16} /> AI Draft
+                        </button>
+                    )}
+                    <button
+                        onClick={handleAddContact}
+                        className="ink-button flex items-center gap-2 text-xs font-sans font-bold uppercase tracking-widest px-6 py-3"
+                    >
+                        <UserPlus size={16} /> Add Contact
+                    </button>
+                </div>
             </header>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -203,19 +246,66 @@ export default function CRMPage() {
                                 </td>
 
                                 <td className="p-6 text-right">
-                                    <button
-                                        onClick={() => handleAIDraft(contact)}
-                                        className="p-2 text-zinc-400 hover:text-[var(--rose-gold)] transition-colors"
-                                        title="Generate AI Email Draft"
-                                    >
-                                        <Sparkles size={16} />
-                                    </button>
+                                    <div className="flex items-center justify-end gap-1">
+                                        <button
+                                            onClick={() => handleAIDraft(contact)}
+                                            className="p-2 text-zinc-400 hover:text-[var(--rose-gold)] transition-colors"
+                                            title="Generate AI Email Draft"
+                                        >
+                                            <Sparkles size={16} />
+                                        </button>
+                                        <button
+                                            onClick={() => handleEditContact(contact)}
+                                            className="p-2 text-zinc-400 hover:text-[var(--forest-green)] transition-colors"
+                                            title="Edit contact"
+                                        >
+                                            <Edit2 size={16} />
+                                        </button>
+                                        <button
+                                            onClick={() => setDeleteConfirm(contact)}
+                                            className="p-2 text-zinc-400 hover:text-red-500 transition-colors"
+                                            title="Delete contact"
+                                        >
+                                            <Trash2 size={16} />
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                         ))}
                     </tbody>
                 </table>
             </div>
+
+            {/* Delete Confirmation Dialog */}
+            {deleteConfirm && (
+                <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50">
+                    <div className="bg-white p-8 rounded-sm shadow-lg max-w-sm animate-in fade-in scale-in duration-200">
+                        <h3 className="text-xl font-serif mb-3">Delete contact?</h3>
+                        <p className="text-sm font-sans text-zinc-600 mb-2">
+                            Are you sure you want to delete <span className="font-bold">{deleteConfirm.first_name} {deleteConfirm.last_name}</span>?
+                        </p>
+                        <p className="text-xs font-sans text-zinc-500 mb-6">
+                            This action cannot be undone. All associated email logs will also be deleted.
+                        </p>
+                        <div className="flex gap-3">
+                            <button
+                                onClick={handleDeleteContact}
+                                disabled={deleting}
+                                className="flex-1 bg-red-600 text-white px-4 py-2 text-xs font-sans font-bold uppercase tracking-widest hover:bg-red-700 disabled:opacity-50 transition-colors rounded-sm"
+                            >
+                                {deleting ? 'Deleting...' : 'Delete'}
+                            </button>
+                            <button
+                                onClick={() => setDeleteConfirm(null)}
+                                disabled={deleting}
+                                className="flex-1 border border-black/5 px-4 py-2 text-xs font-sans font-bold uppercase tracking-widest hover:bg-black/5 disabled:opacity-50 transition-colors rounded-sm"
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
