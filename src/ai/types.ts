@@ -57,6 +57,9 @@ export interface GenerationRequest {
   taskType?: TaskType;
   brandVoiceId?: string;
 
+  // Brand voice injection (defaults to true)
+  injectBrandVoice?: boolean;
+
   // Metadata
   userId: string;
   requestId?: string;

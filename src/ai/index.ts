@@ -21,3 +21,18 @@ export {
   getAllProviders,
   getAvailableProviders,
 } from './providers';
+
+// Brand Voice
+export {
+  BrandVoiceService,
+  getBrandVoiceService,
+  DEFAULT_VOICE_ATTRIBUTES,
+  ATTRIBUTE_LABELS,
+  INDUSTRY_PRESETS,
+  type BrandVoiceProfile,
+  type VoiceAttributes,
+  type WizardStep1Data,
+  type WizardStep2Data,
+  type WizardStep3Data,
+  type WizardStep4Data,
+} from './BrandVoice';

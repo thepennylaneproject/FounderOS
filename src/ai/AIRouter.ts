@@ -22,6 +22,7 @@ import {
   UserAISettings,
 } from './types';
 import { getProvider, getAllProviders, BaseProvider } from './providers';
+import { getBrandVoiceService, BrandVoiceProfile } from './BrandVoice';
 
 // Import providers to register them
 import './providers/openai';
@@ -92,8 +93,14 @@ export class AIRouter {
     const requestId = request.requestId || uuid();
     const startTime = Date.now();
 
+    // Inject brand voice if enabled and available
+    let enhancedRequest = request;
+    if (request.injectBrandVoice !== false) {
+      enhancedRequest = await this.injectBrandVoice(request);
+    }
+
     // Select the best model based on request and settings
-    const selection = await this.selectModel(request, userSettings);
+    const selection = await this.selectModel(enhancedRequest, userSettings);
 
     // Check budget before proceeding
     if (userSettings?.perRequestLimit) {
@@ -109,7 +116,7 @@ export class AIRouter {
 
     // Execute with retry and fallback
     const response = await this.executeWithFallback(
-      request,
+      enhancedRequest,
       selection,
       userSettings,
       requestId
@@ -368,6 +375,36 @@ export class AIRouter {
 
     // Fall back to platform key
     return this.config.platformKeys[provider];
+  }
+
+  /**
+   * Inject brand voice guidelines into the system prompt
+   */
+  private async injectBrandVoice(request: GenerationRequest): Promise<GenerationRequest> {
+    try {
+      const brandVoice = getBrandVoiceService();
+      const profile = brandVoice.getActiveProfile(request.userId);
+
+      if (!profile) {
+        return request; // No brand voice configured
+      }
+
+      const voicePrompt = brandVoice.generateVoicePrompt(profile);
+      const existingSystemPrompt = request.systemPrompt || '';
+
+      // Combine voice guidelines with existing system prompt
+      const enhancedSystemPrompt = existingSystemPrompt
+        ? `${voicePrompt}\n\n---\n\n${existingSystemPrompt}`
+        : voicePrompt;
+
+      return {
+        ...request,
+        systemPrompt: enhancedSystemPrompt,
+      };
+    } catch (error) {
+      console.error('Brand voice injection failed:', error);
+      return request; // Fall back to original request
+    }
   }
 
   /**
