@@ -1,6 +1,6 @@
 # FounderOS - Domain & Marketing Command Center
 
-FounderOS is an all-in-one platform for managing domains, email marketing, and project management.
+FounderOS is an all-in-one platform for managing email domains, marketing campaigns, and customer relationships.
 
 ## Project Structure
 

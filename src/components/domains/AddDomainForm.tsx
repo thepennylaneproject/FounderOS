@@ -2,17 +2,29 @@
 
 import React, { useState } from 'react';
 import { useUI } from '@/context/UIContext';
-import { Globe, Shield } from 'lucide-react';
+import { Globe, Shield, AlertCircle } from 'lucide-react';
 import { DomainSetupGuide } from './DomainSetupGuide';
+import { validateDomainForm } from '@/lib/validation';
 
 export const AddDomainForm: React.FC<{ onSuccess: () => void }> = ({ onSuccess }) => {
     const { showToast, closeModal } = useUI();
     const [submitting, setSubmitting] = useState(false);
     const [domainName, setDomainName] = useState('');
+    const [error, setError] = useState('');
     const [createdDomain, setCreatedDomain] = useState<string | null>(null);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        // Validate before submitting
+        const validationErrors = validateDomainForm({ domain_name: domainName });
+        if (validationErrors.length > 0) {
+            setError(validationErrors[0].message);
+            showToast('Please enter a valid domain', 'error');
+            return;
+        }
+
+        setError('');
         setSubmitting(true);
 
         try {
@@ -60,14 +72,24 @@ export const AddDomainForm: React.FC<{ onSuccess: () => void }> = ({ onSuccess }
                 <div className="relative">
                     <Globe size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
                     <input
-                        required
                         type="text"
                         placeholder="example.com"
                         value={domainName}
-                        onChange={(e) => setDomainName(e.target.value)}
-                        className="w-full bg-white border border-black/5 p-3 pl-10 text-sm font-sans focus:ring-0 focus:border-[var(--rose-gold)] transition-colors outline-none lowercase"
+                        onChange={(e) => {
+                            setDomainName(e.target.value);
+                            if (error) setError('');
+                        }}
+                        className={`w-full bg-white border p-3 pl-10 text-sm font-sans focus:ring-0 transition-colors outline-none lowercase ${
+                            error ? 'border-red-500' : 'border-black/5 focus:border-[var(--rose-gold)]'
+                        }`}
                     />
                 </div>
+                {error && (
+                    <div className="flex items-center gap-2 text-red-600 text-[10px] font-sans">
+                        <AlertCircle size={12} />
+                        {error}
+                    </div>
+                )}
             </div>
 
             <div className="pt-4">

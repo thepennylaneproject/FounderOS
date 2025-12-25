@@ -110,23 +110,13 @@ export default function InboxPage() {
                                 <h3 className="text-2xl font-serif mb-1 italic leading-tight">{selectedEmail.subject}</h3>
                                 <p className="text-xs font-sans text-zinc-500">From: <span className="text-[var(--ink)] font-medium lowercase italic">{selectedEmail.from}</span></p>
                             </div>
-                            <div className="flex gap-4">
-                                <button
-                                    onClick={() => showToast('Reply feature coming soon', 'info')}
-                                    className="ink-button text-[10px] font-sans font-bold uppercase tracking-widest px-6 py-2"
-                                    disabled
-                                    title="Reply feature coming soon"
-                                >
-                                    Reply
-                                </button>
-                                <button
-                                    onClick={() => setShowDeleteConfirm(true)}
-                                    className="p-2 border border-black/5 hover:bg-red-50 transition-colors rounded-sm"
-                                    title="Delete email"
-                                >
-                                    <Trash2 size={16} />
-                                </button>
-                            </div>
+                            <button
+                                onClick={() => setShowDeleteConfirm(true)}
+                                className="p-2 border border-black/5 hover:bg-red-50 transition-colors rounded-sm"
+                                title="Delete email"
+                            >
+                                <Trash2 size={16} />
+                            </button>
                         </header>
                         <div className="flex-1 p-12 overflow-y-auto">
                             <div className="max-w-2xl mx-auto bg-white p-12 shadow-sm border border-black/5 font-serif text-lg leading-relaxed text-zinc-800 whitespace-pre-wrap">

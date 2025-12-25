@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import {
     ShieldCheck,
     Send,
@@ -112,7 +113,7 @@ export default function OverviewPage() {
                 <div className="lg:col-span-2">
                     <div className="flex justify-between items-center mb-6 pb-2 border-b-2 border-[var(--ink)]">
                         <h3 className="text-xl font-serif lowercase tracking-tighter">recent campaigns</h3>
-                        <span className="text-[10px] font-sans font-bold tracking-widest uppercase text-zinc-400 cursor-pointer hover:text-[var(--ink)] transition-colors">view all</span>
+                        <Link href="/campaigns" className="text-[10px] font-sans font-bold tracking-widest uppercase text-zinc-400 hover:text-[var(--ink)] transition-colors">view all</Link>
                     </div>
 
                     <div className="space-y-0 italic font-serif">

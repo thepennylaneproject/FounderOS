@@ -8,11 +8,9 @@ import {
     Send,
     Inbox,
     Workflow,
-    Settings,
     Users,
     Zap,
     ChevronRight,
-    Plus,
 } from 'lucide-react';
 import { useUI } from '@/context/UIContext';
 import { useUser } from '@/context/UserContext';
@@ -41,7 +39,7 @@ export const DashboardShell: React.FC<{ children: React.ReactNode }> = ({ childr
             case '/domains': return 'Email Domains';
             case '/campaigns': return 'Campaigns';
             case '/crm': return 'Customer CRM';
-            case '/automations': return 'Workflows';
+            case '/workflows': return 'Workflows';
             case '/inbox': return 'Unified Inbox';
             default: return 'FounderOS';
         }
@@ -93,7 +91,7 @@ export const DashboardShell: React.FC<{ children: React.ReactNode }> = ({ childr
                     <SidebarItem icon={ShieldCheck} label="Email Domains" href="/domains" active={pathname === '/domains'} />
                     <SidebarItem icon={Send} label="Campaigns" href="/campaigns" active={pathname === '/campaigns'} />
                     <SidebarItem icon={Inbox} label="Unified Inbox" href="/inbox" active={pathname === '/inbox'} />
-                    <SidebarItem icon={Workflow} label="Workflows" href="/automations" active={pathname === '/automations'} />
+                    <SidebarItem icon={Workflow} label="Workflows" href="/workflows" active={pathname === '/workflows'} />
                     <SidebarItem icon={Users} label="CRM" href="/crm" active={pathname === '/crm'} />
                 </nav>
 
@@ -106,7 +104,6 @@ export const DashboardShell: React.FC<{ children: React.ReactNode }> = ({ childr
                             <p className="text-xs font-semibold truncate">{user.name}</p>
                             <p className="text-[10px] text-zinc-500 truncate">{user.email}</p>
                         </div>
-                        <Settings size={14} className="text-zinc-400 cursor-pointer hover:text-[var(--ink)]" />
                     </div>
                 </div>
             </aside>
@@ -114,10 +111,7 @@ export const DashboardShell: React.FC<{ children: React.ReactNode }> = ({ childr
             {/* Main Content Area */}
             <div className="flex-1 min-h-screen flex flex-col">
                 <header className="px-12 pt-12 flex justify-between items-end mb-8 sticky top-0 bg-[var(--ivory)]/80 backdrop-blur-md z-10 pb-4 border-b border-transparent">
-                    <div>
-                        <h2 className="text-4xl font-serif mb-1 tracking-tight">{getPageTitle()}</h2>
-                        <p className="text-xs font-sans text-zinc-500 tracking-tight">System Status: <span className="text-[var(--forest-green)] font-medium underline underline-offset-4 decoration-black/5">Fully Operational</span></p>
-                    </div>
+                    <h2 className="text-4xl font-serif tracking-tight">{getPageTitle()}</h2>
                     <button
                         onClick={handleQuickLaunch}
                         className="ink-button flex items-center gap-2 text-xs font-sans font-bold uppercase tracking-widest hover:gap-3 transition-all px-6 py-3"

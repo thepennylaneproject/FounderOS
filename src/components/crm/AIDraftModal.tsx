@@ -2,11 +2,13 @@
 
 import React, { useState } from 'react';
 import { useUI } from '@/context/UIContext';
-import { Sparkles, Send, Copy, RefreshCw } from 'lucide-react';
+import { Sparkles, Send, Copy, RefreshCw, AlertCircle } from 'lucide-react';
 
 export const AIDraftModal: React.FC<{ contact: any }> = ({ contact }) => {
     const { showToast, closeModal } = useUI();
     const [loading, setLoading] = useState(false);
+    const [sending, setSending] = useState(false);
+    const [showSendConfirm, setShowSendConfirm] = useState(false);
     const [draft, setDraft] = useState<{ subject: string; body: string } | null>(null);
     const [intent, setIntent] = useState('outreach');
 
@@ -40,6 +42,7 @@ export const AIDraftModal: React.FC<{ contact: any }> = ({ contact }) => {
 
     const handleSend = async () => {
         if (!draft) return;
+        setSending(true);
         try {
             const res = await fetch('/api/emails/send', {
                 method: 'POST',
@@ -58,6 +61,9 @@ export const AIDraftModal: React.FC<{ contact: any }> = ({ contact }) => {
         } catch (error) {
             console.error(error);
             showToast('Failed to send email', 'error');
+        } finally {
+            setSending(false);
+            setShowSendConfirm(false);
         }
     };
 
@@ -105,27 +111,57 @@ export const AIDraftModal: React.FC<{ contact: any }> = ({ contact }) => {
                             {draft.body}
                         </div>
                     </div>
-                    <div className="flex gap-4">
-                        <button
-                            onClick={handleSend}
-                            className="flex-1 ink-button flex items-center justify-center gap-2 text-xs font-sans font-bold uppercase tracking-widest py-4"
-                        >
-                            <Send size={14} /> Send Email
-                        </button>
-                        <button
-                            onClick={handleCopy}
-                            className="px-6 border border-black/5 hover:bg-black/5 transition-colors text-[var(--ink)]"
-                        >
-                            <Copy size={16} />
-                        </button>
-                        <button
-                            onClick={generateDraft}
-                            disabled={loading}
-                            className="px-6 border border-black/5 hover:bg-black/5 transition-colors text-zinc-400"
-                        >
-                            <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
-                        </button>
-                    </div>
+                    {!showSendConfirm ? (
+                        <div className="flex gap-4">
+                            <button
+                                onClick={() => setShowSendConfirm(true)}
+                                className="flex-1 ink-button flex items-center justify-center gap-2 text-xs font-sans font-bold uppercase tracking-widest py-4"
+                            >
+                                <Send size={14} /> Send Email
+                            </button>
+                            <button
+                                onClick={handleCopy}
+                                className="px-6 border border-black/5 hover:bg-black/5 transition-colors text-[var(--ink)]"
+                            >
+                                <Copy size={16} />
+                            </button>
+                            <button
+                                onClick={generateDraft}
+                                disabled={loading}
+                                className="px-6 border border-black/5 hover:bg-black/5 transition-colors text-zinc-400"
+                            >
+                                <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="space-y-3 p-4 bg-amber-50 border border-amber-200 rounded-sm">
+                            <div className="flex items-start gap-3">
+                                <AlertCircle size={16} className="text-amber-600 flex-shrink-0 mt-0.5" />
+                                <div>
+                                    <p className="text-sm font-sans font-bold text-amber-900">Send this email?</p>
+                                    <p className="text-xs font-sans text-amber-800 mt-1">
+                                        This will send an email to {contact.email}. This action cannot be undone.
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={handleSend}
+                                    disabled={sending}
+                                    className="flex-1 bg-[var(--forest-green)] text-white px-4 py-2 text-xs font-sans font-bold uppercase tracking-widest hover:bg-[var(--ink)] disabled:opacity-50 transition-colors"
+                                >
+                                    {sending ? 'Sending...' : 'Yes, Send Now'}
+                                </button>
+                                <button
+                                    onClick={() => setShowSendConfirm(false)}
+                                    disabled={sending}
+                                    className="flex-1 border border-amber-200 text-amber-900 px-4 py-2 text-xs font-sans font-bold uppercase tracking-widest hover:bg-amber-50 disabled:opacity-50 transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
         </div>

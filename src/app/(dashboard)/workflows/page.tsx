@@ -8,7 +8,7 @@ import { CreateWorkflowForm } from '@/components/automations/CreateWorkflowForm'
 export default function AutomationsPage() {
     const [workflows, setWorkflows] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const { openModal } = useUI();
+    const { openModal, showToast } = useUI();
 
     const fetchWorkflows = () => {
         setLoading(true);
@@ -33,8 +33,7 @@ export default function AutomationsPage() {
     };
 
     const handleTestWorkflow = (workflow: any) => {
-        // Manual trigger of workflow
-        alert(`Testing workflow: ${workflow.name}\n\nWorkflow will execute with test data. Check your system logs for execution details.`);
+        showToast(`Testing "${workflow.name}" - check system logs for execution details`, 'info');
     };
 
     return (
