@@ -36,3 +36,88 @@ export {
   type WizardStep3Data,
   type WizardStep4Data,
 } from './BrandVoice';
+
+// Copywriter Agent
+export {
+  CopywriterService,
+  getCopywriter,
+  type SubjectLineRequest,
+  type EmailBodyRequest,
+  type CTARequest,
+  type EmailPurpose,
+  type EmailFormat,
+  type ToneStyle,
+  type SubjectLineVariant,
+  type GeneratedEmailBody,
+  type CTAVariant,
+} from './Copywriter';
+
+// Visual Generator
+export {
+  VisualGeneratorService,
+  getVisualGenerator,
+  IMAGE_TEMPLATES,
+  type ImageProvider,
+  type ImageStyle,
+  type ImagePurpose,
+  type AspectRatio,
+  type ImageGenerationRequest,
+  type GeneratedImage,
+  type ImageTemplate,
+} from './VisualGenerator';
+
+// Personalization Engine
+export {
+  PersonalizationEngine,
+  getPersonalizationEngine,
+  STANDARD_MERGE_TAGS,
+  type ContactData,
+  type MergeTag,
+  type MergeTagCategory,
+  type DynamicBlock,
+  type ContentRule,
+  type RuleCondition,
+  type ConditionOperator,
+  type PersonalizationSuggestion,
+  type PersonalizedContent,
+} from './PersonalizationEngine';
+
+// Campaign Strategist
+export {
+  CampaignStrategist,
+  getCampaignStrategist,
+  type StrategyRequest,
+  type CampaignGoal,
+  type CampaignStrategy,
+  type EmailInSequence,
+  type SendTiming,
+  type SendingSchedule,
+  type SegmentationStrategy,
+  type AudienceSegment,
+  type ABTestPlan,
+  type ABVariant,
+  type KPITarget,
+  type StrategyRecommendation,
+  type ProjectedMetrics,
+  type CampaignIdea,
+} from './CampaignStrategist';
+
+// Automation Hub
+export {
+  AutomationHub,
+  getAutomationHub,
+  WORKFLOW_TEMPLATES,
+  type Workflow,
+  type WorkflowSettings,
+  type WorkflowStats,
+  type WorkflowTrigger,
+  type TriggerType,
+  type WorkflowStep,
+  type StepType,
+  type StepConfig,
+  type StepBranch,
+  type ConditionGroup,
+  type Condition,
+  type WorkflowExecution,
+  type WorkflowTemplate,
+} from './AutomationHub';
