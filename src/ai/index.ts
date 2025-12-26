@@ -101,3 +101,23 @@ export {
   type ProjectedMetrics,
   type CampaignIdea,
 } from './CampaignStrategist';
+
+// Automation Hub
+export {
+  AutomationHub,
+  getAutomationHub,
+  WORKFLOW_TEMPLATES,
+  type Workflow,
+  type WorkflowSettings,
+  type WorkflowStats,
+  type WorkflowTrigger,
+  type TriggerType,
+  type WorkflowStep,
+  type StepType,
+  type StepConfig,
+  type StepBranch,
+  type ConditionGroup,
+  type Condition,
+  type WorkflowExecution,
+  type WorkflowTemplate,
+} from './AutomationHub';
