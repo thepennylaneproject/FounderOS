@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import {
     ShieldCheck,
     Send,
@@ -37,6 +38,7 @@ const StatCard: React.FC<{ label: string, value: string | number, trend: string,
 
 export default function OverviewPage() {
     const { showToast, openModal } = useUI();
+    const router = useRouter();
     const [stats, setStats] = useState({
         domains: 0,
         contacts: 0,
@@ -46,8 +48,11 @@ export default function OverviewPage() {
     const [campaigns, setCampaigns] = useState<any[]>([]);
     const [workflows, setWorkflows] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [fetchError, setFetchError] = useState<string | null>(null);
 
     const fetchData = async () => {
+        setFetchError(null);
+        setLoading(true);
         try {
             const [domainsRes, contactsRes, campaignsRes, workflowsRes] = await Promise.all([
                 fetch('/api/domains'),
@@ -55,6 +60,10 @@ export default function OverviewPage() {
                 fetch('/api/campaigns'),
                 fetch('/api/workflows')
             ]);
+
+            if (!domainsRes.ok || !contactsRes.ok || !campaignsRes.ok || !workflowsRes.ok) {
+                throw new Error('One or more requests failed');
+            }
 
             const domains = await domainsRes.json();
             const contacts = await contactsRes.json();
@@ -76,6 +85,8 @@ export default function OverviewPage() {
             setWorkflows(workflows.slice(0, 3));
         } catch (error) {
             console.error('Error fetching dashboard data:', error);
+            setFetchError('We couldn’t load your dashboard data. Please retry.');
+            showToast('Dashboard data failed to load', 'error');
         } finally {
             setLoading(false);
         }
@@ -91,6 +102,31 @@ export default function OverviewPage() {
     useEffect(() => {
         fetchData();
     }, []);
+
+    if (loading) {
+        return (
+            <div className="p-12 text-center text-zinc-400 italic">
+                Loading your workspace...
+            </div>
+        );
+    }
+
+    if (fetchError) {
+        return (
+            <div className="editorial-card max-w-3xl mx-auto text-center space-y-6 animate-in fade-in duration-500">
+                <div className="flex items-center justify-center gap-2 text-amber-700">
+                    <AlertCircle size={18} />
+                    <p className="text-sm font-sans">{fetchError}</p>
+                </div>
+                <button
+                    className="ink-button text-xs font-sans font-bold uppercase tracking-widest px-6 py-2"
+                    onClick={fetchData}
+                >
+                    Retry loading
+                </button>
+            </div>
+        );
+    }
 
     // Show onboarding for new users
     if (stats.domains === 0 && stats.contacts === 0) {
@@ -121,7 +157,12 @@ export default function OverviewPage() {
                 <div className="lg:col-span-2">
                     <div className="flex justify-between items-center mb-6 pb-2 border-b-2 border-[var(--ink)]">
                         <h3 className="text-xl font-serif lowercase tracking-tighter">recent campaigns</h3>
-                        <span className="text-[10px] font-sans font-bold tracking-widest uppercase text-zinc-400 cursor-pointer hover:text-[var(--ink)] transition-colors">view all</span>
+                        <button
+                            onClick={() => router.push('/campaigns')}
+                            className="text-[10px] font-sans font-bold tracking-widest uppercase text-zinc-400 cursor-pointer hover:text-[var(--ink)] transition-colors flex items-center gap-1"
+                        >
+                            view all <ChevronRight size={12} />
+                        </button>
                     </div>
 
                     <div className="space-y-0 italic font-serif">
