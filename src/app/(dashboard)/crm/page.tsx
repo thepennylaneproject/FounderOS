@@ -24,7 +24,8 @@ export default function CRMPage() {
     const [contacts, setContacts] = useState<ContactWithMomentum[]>([]);
     const [loading, setLoading] = useState(true);
     const [showMomentumExplainer, setShowMomentumExplainer] = useState(false);
-    const { openModal } = useUI();
+    const [fetchError, setFetchError] = useState<string | null>(null);
+    const { openModal, showToast } = useUI();
 
     // Show momentum explainer on first CRM visit
     useEffect(() => {
@@ -36,6 +37,7 @@ export default function CRMPage() {
     }, []);
 
     const fetchContacts = async () => {
+        setFetchError(null);
         setLoading(true);
         try {
             const [contactsRes, momentumRes] = await Promise.all([
@@ -65,6 +67,8 @@ export default function CRMPage() {
             setContacts(enriched);
         } catch (err) {
             console.error(err);
+            setFetchError('We couldn’t load your contacts or intelligence scores. Please retry.');
+            showToast('CRM data failed to load', 'error');
         } finally {
             setLoading(false);
         }
@@ -166,6 +170,18 @@ export default function CRMPage() {
                     <UserPlus size={16} /> Add Contact
                 </button>
             </header>
+
+            {fetchError && (
+                <div className="editorial-card max-w-4xl">
+                    <p className="text-sm font-sans text-amber-700 mb-4">{fetchError}</p>
+                    <button
+                        onClick={fetchContacts}
+                        className="ink-button text-xs font-sans font-bold uppercase tracking-widest px-6 py-2"
+                    >
+                        Retry loading
+                    </button>
+                </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <div className="editorial-card">

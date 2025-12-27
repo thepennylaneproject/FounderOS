@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Send, Plus, BarChart2, Mail, Users, Calendar, Play, FileText } from 'lucide-react';
+import { Send, Plus, BarChart2, Mail, Users, Play, FileText } from 'lucide-react';
 import { useUI } from '@/context/UIContext';
 import { CreateCampaignForm } from '@/components/campaigns/CreateCampaignForm';
 import { CampaignDetailModal } from '@/components/campaigns/CampaignDetailModal';
@@ -9,9 +9,11 @@ import { CampaignDetailModal } from '@/components/campaigns/CampaignDetailModal'
 export default function CampaignsPage() {
     const [campaigns, setCampaigns] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const { openModal } = useUI();
+    const [fetchError, setFetchError] = useState<string | null>(null);
+    const { openModal, showToast } = useUI();
 
     const fetchCampaigns = () => {
+        setFetchError(null);
         setLoading(true);
         fetch('/api/campaigns')
             .then(res => res.json())
@@ -19,7 +21,12 @@ export default function CampaignsPage() {
                 setCampaigns(data);
                 setLoading(false);
             })
-            .catch(err => console.error(err));
+            .catch(err => {
+                console.error(err);
+                setFetchError('We couldn’t load your campaigns right now. Please retry.');
+                setLoading(false);
+                showToast('Campaigns failed to load', 'error');
+            });
     };
 
     useEffect(() => {
@@ -54,6 +61,18 @@ export default function CampaignsPage() {
                     <Plus size={16} /> New Campaign
                 </button>
             </header>
+
+            {fetchError && (
+                <div className="editorial-card max-w-3xl">
+                    <p className="text-sm font-sans text-amber-700 mb-4">{fetchError}</p>
+                    <button
+                        onClick={fetchCampaigns}
+                        className="ink-button text-xs font-sans font-bold uppercase tracking-widest px-6 py-2"
+                    >
+                        Retry loading
+                    </button>
+                </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
                 {(() => {

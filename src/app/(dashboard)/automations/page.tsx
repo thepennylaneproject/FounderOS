@@ -1,16 +1,18 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Workflow, Plus, Zap, ArrowRight, Settings2, PlayCircle } from 'lucide-react';
+import { Plus, Zap, ArrowRight, Settings2, PlayCircle } from 'lucide-react';
 import { useUI } from '@/context/UIContext';
 import { CreateWorkflowForm } from '@/components/automations/CreateWorkflowForm';
 
 export default function AutomationsPage() {
     const [workflows, setWorkflows] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const { openModal } = useUI();
+    const [fetchError, setFetchError] = useState<string | null>(null);
+    const { openModal, showToast } = useUI();
 
     const fetchWorkflows = () => {
+        setFetchError(null);
         setLoading(true);
         fetch('/api/workflows')
             .then(res => res.json())
@@ -18,7 +20,12 @@ export default function AutomationsPage() {
                 setWorkflows(data);
                 setLoading(false);
             })
-            .catch(err => console.error(err));
+            .catch(err => {
+                console.error(err);
+                setFetchError('We couldn’t load your workflows. Please retry in a moment.');
+                setLoading(false);
+                showToast('Workflows failed to load', 'error');
+            });
     };
 
     useEffect(() => {
@@ -51,6 +58,18 @@ export default function AutomationsPage() {
                     <Plus size={16} /> Create Workflow
                 </button>
             </header>
+
+            {fetchError && (
+                <div className="editorial-card max-w-3xl">
+                    <p className="text-sm font-sans text-amber-700 mb-4">{fetchError}</p>
+                    <button
+                        onClick={fetchWorkflows}
+                        className="ink-button text-xs font-sans font-bold uppercase tracking-widest px-6 py-2"
+                    >
+                        Retry loading
+                    </button>
+                </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
                 <div className="editorial-card">
