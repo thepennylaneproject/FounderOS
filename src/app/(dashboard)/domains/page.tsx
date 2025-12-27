@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, Globe, Activity, CheckCircle2, AlertCircle, RefreshCw, TrendingUp, Lock } from 'lucide-react';
+import { ShieldCheck, Globe, CheckCircle2, AlertCircle, RefreshCw, Lock } from 'lucide-react';
 import { useUI } from '@/context/UIContext';
 import { AddDomainForm } from '@/components/domains/AddDomainForm';
 
@@ -21,9 +21,11 @@ export default function DomainsPage() {
     const [domains, setDomains] = useState<any[]>([]);
     const [deliverability, setDeliverability] = useState<DomainDeliverability[]>([]);
     const [loading, setLoading] = useState(true);
-    const { openModal } = useUI();
+    const [fetchError, setFetchError] = useState<string | null>(null);
+    const { openModal, showToast } = useUI();
 
     const fetchDomains = async () => {
+        setFetchError(null);
         setLoading(true);
         try {
             const [domainsRes, deliverabilityRes] = await Promise.all([
@@ -36,6 +38,8 @@ export default function DomainsPage() {
             setDeliverability(Array.isArray(deliverabilityData) ? deliverabilityData : []);
         } catch (err) {
             console.error(err);
+            setFetchError('We couldn’t load your domains or deliverability data. Please retry.');
+            showToast('Domain data failed to load', 'error');
         } finally {
             setLoading(false);
         }
@@ -79,6 +83,21 @@ export default function DomainsPage() {
                     </button>
                 </div>
             </header>
+
+            {fetchError && (
+                <div className="editorial-card max-w-3xl">
+                    <div className="flex items-center gap-2 text-amber-700 mb-4">
+                        <AlertCircle size={18} />
+                        <p className="text-sm font-sans">{fetchError}</p>
+                    </div>
+                    <button
+                        onClick={fetchDomains}
+                        className="ink-button text-xs font-sans font-bold uppercase tracking-widest px-6 py-2"
+                    >
+                        Retry loading
+                    </button>
+                </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {loading ? (

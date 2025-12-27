@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Inbox, Mail, Search, Archive, Trash2, Send, RefreshCw, ChevronRight } from 'lucide-react';
+import { Inbox, Mail, Search, Archive, Trash2, Send, RefreshCw } from 'lucide-react';
 import { useUI } from '@/context/UIContext';
 
 export default function InboxPage() {
@@ -9,9 +9,11 @@ export default function InboxPage() {
     const [loading, setLoading] = useState(true);
     const [selectedEmail, setSelectedEmail] = useState<any>(null);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [fetchError, setFetchError] = useState<string | null>(null);
     const { showToast } = useUI();
 
     const fetchEmails = async () => {
+        setFetchError(null);
         setLoading(true);
         try {
             const res = await fetch('/api/emails');
@@ -19,6 +21,8 @@ export default function InboxPage() {
             setEmails(data);
         } catch (err) {
             console.error(err);
+            setFetchError('We couldn’t load your inbox. Please retry.');
+            showToast('Inbox failed to sync', 'error');
         } finally {
             setLoading(false);
         }
@@ -72,7 +76,17 @@ export default function InboxPage() {
                     </div>
                 </div>
                 <div className="flex-1 overflow-y-auto divide-y divide-black/5">
-                    {loading ? (
+                    {fetchError ? (
+                        <div className="p-12 text-center space-y-4">
+                            <p className="text-sm font-sans text-amber-700">{fetchError}</p>
+                            <button
+                                onClick={fetchEmails}
+                                className="ink-button text-[10px] font-sans font-bold uppercase tracking-widest px-6 py-2"
+                            >
+                                Retry loading
+                            </button>
+                        </div>
+                    ) : loading ? (
                         <div className="p-12 text-center">
                             <RefreshCw size={16} className="animate-spin mx-auto mb-3 text-zinc-400" />
                             <p className="text-sm font-sans text-zinc-400 italic">Loading emails...</p>
