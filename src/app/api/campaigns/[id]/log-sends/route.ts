@@ -21,10 +21,11 @@ export async function POST(
     request: NextRequest,
     { params }: { params: { id: string } }
 ) {
+    let recipients: any[] = [];
     try {
         const campaignId = params.id;
         const body = await request.json();
-        const { recipients } = body;
+        recipients = body?.recipients || [];
 
         if (!Array.isArray(recipients) || recipients.length === 0) {
             return NextResponse.json(

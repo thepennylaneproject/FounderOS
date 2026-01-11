@@ -7,6 +7,8 @@
 import { NextResponse } from 'next/server';
 import { costTracker } from '@/ai';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * GET /api/ai/usage
  *

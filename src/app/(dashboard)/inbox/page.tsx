@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { Suspense, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { AlertTriangle, ChevronRight, FileText, RefreshCw } from 'lucide-react';
@@ -36,6 +36,14 @@ interface Tile {
 }
 
 export default function InboxPage() {
+    return (
+        <Suspense fallback={<div className="p-10 text-center text-zinc-400 italic">Loading inbox...</div>}>
+            <InboxContent />
+        </Suspense>
+    );
+}
+
+function InboxContent() {
     const [lane, setLane] = useState<Lane>('now');
     const [threads, setThreads] = useState<ThreadRow[]>([]);
     const [selectedThread, setSelectedThread] = useState<string | null>(null);

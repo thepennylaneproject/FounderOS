@@ -1,8 +1,11 @@
 import { Pool } from 'pg';
 
+const sslDisabled = process.env.PGSSLMODE === 'disable' || process.env.DATABASE_SSL === 'false';
+const useSSL = process.env.NODE_ENV === 'production' && !sslDisabled;
+
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
-    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+    ssl: useSSL ? { rejectUnauthorized: false } : false,
 });
 
 export const query = async (text: string, params?: any[]) => {

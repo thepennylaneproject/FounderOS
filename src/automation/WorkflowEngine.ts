@@ -84,7 +84,7 @@ export class WorkflowAutomation {
                         {
                             workflow_name: wf.name,
                             total_actions: totalActions,
-                            actions_executed: actions.map(a => a.action)
+                            actions_executed: actions.map((a: WorkflowAction) => a.action)
                         },
                         actionErrors.length > 0 ? actionErrors.join('; ') : undefined
                     );

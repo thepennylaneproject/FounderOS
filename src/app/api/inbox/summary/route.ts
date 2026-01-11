@@ -45,7 +45,7 @@ export async function GET() {
                 acc[name] = (acc[name] || 0) + 1;
                 return acc;
             }, {});
-            const topSenders = Object.entries(senderCounts)
+            const topSenders = (Object.entries(senderCounts) as Array<[string, number]>)
                 .sort((a, b) => b[1] - a[1])
                 .slice(0, 3)
                 .map(([name]) => name);
