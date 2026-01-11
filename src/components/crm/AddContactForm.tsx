@@ -6,9 +6,10 @@ import { CheckCircle2, MessageSquare, Send, ArrowRight, AlertCircle } from 'luci
 import { validateContactForm } from '@/lib/validation';
 
 export const AddContactForm: React.FC<{ onSuccess: () => void }> = ({ onSuccess }) => {
-    const { showToast, closeModal } = useUI();
+    const { showToast, closeModal, setModalDirty } = useUI();
     const [submitting, setSubmitting] = useState(false);
     const [created, setCreated] = useState<any>(null);
+    const [isDirty, setIsDirty] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [formData, setFormData] = useState({
         email: '',
@@ -17,6 +18,14 @@ export const AddContactForm: React.FC<{ onSuccess: () => void }> = ({ onSuccess 
         company_name: '',
         stage: 'lead' // Default to 'lead'
     });
+
+    const handleFormChange = (newData: any) => {
+        setFormData(newData);
+        if (!isDirty) {
+            setIsDirty(true);
+            setModalDirty(true);
+        }
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -51,6 +60,9 @@ export const AddContactForm: React.FC<{ onSuccess: () => void }> = ({ onSuccess 
                 return;
             }
 
+            // Clear dirty state after successful submission
+            setIsDirty(false);
+            setModalDirty(false);
             setCreated(data);
         } catch (error) {
             console.error(error);
@@ -125,7 +137,7 @@ export const AddContactForm: React.FC<{ onSuccess: () => void }> = ({ onSuccess 
                         type="text"
                         value={formData.first_name}
                         onChange={(e) => {
-                            setFormData({ ...formData, first_name: e.target.value });
+                            handleFormChange({ ...formData, first_name: e.target.value });
                             if (errors.first_name) setErrors({ ...errors, first_name: '' });
                         }}
                         className={`w-full bg-white border p-3 text-sm font-sans focus:ring-0 transition-colors outline-none ${
@@ -145,7 +157,7 @@ export const AddContactForm: React.FC<{ onSuccess: () => void }> = ({ onSuccess 
                         type="text"
                         value={formData.last_name}
                         onChange={(e) => {
-                            setFormData({ ...formData, last_name: e.target.value });
+                            handleFormChange({ ...formData, last_name: e.target.value });
                             if (errors.last_name) setErrors({ ...errors, last_name: '' });
                         }}
                         className={`w-full bg-white border p-3 text-sm font-sans focus:ring-0 transition-colors outline-none ${
@@ -167,7 +179,7 @@ export const AddContactForm: React.FC<{ onSuccess: () => void }> = ({ onSuccess 
                     type="email"
                     value={formData.email}
                     onChange={(e) => {
-                        setFormData({ ...formData, email: e.target.value });
+                        handleFormChange({ ...formData, email: e.target.value });
                         if (errors.email) setErrors({ ...errors, email: '' });
                     }}
                     className={`w-full bg-white border p-3 text-sm font-sans focus:ring-0 transition-colors outline-none lowercase ${
@@ -187,7 +199,7 @@ export const AddContactForm: React.FC<{ onSuccess: () => void }> = ({ onSuccess 
                 <input
                     type="text"
                     value={formData.company_name}
-                    onChange={(e) => setFormData({ ...formData, company_name: e.target.value })}
+                    onChange={(e) => handleFormChange({ ...formData, company_name: e.target.value })}
                     className="w-full bg-white border border-black/5 p-3 text-sm font-sans focus:ring-0 focus:border-[var(--rose-gold)] transition-colors outline-none"
                 />
             </div>
@@ -196,7 +208,7 @@ export const AddContactForm: React.FC<{ onSuccess: () => void }> = ({ onSuccess 
                 <label className="text-[10px] font-sans font-bold uppercase tracking-widest text-zinc-400">Pipeline Stage</label>
                 <select
                     value={formData.stage}
-                    onChange={(e) => setFormData({ ...formData, stage: e.target.value })}
+                    onChange={(e) => handleFormChange({ ...formData, stage: e.target.value })}
                     className="w-full bg-white border border-black/5 p-3 text-sm font-sans focus:ring-0 focus:border-[var(--rose-gold)] transition-colors outline-none appearance-none"
                 >
                     <option value="lead">Lead</option>

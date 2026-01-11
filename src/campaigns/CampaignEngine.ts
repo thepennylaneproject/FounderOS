@@ -1,6 +1,7 @@
-import { query } from '@/lib/db';
+import { query, getClient, queryClient, withTransaction } from '@/lib/db';
 import { emailClient } from '@/lib/email';
 import { eventLoggingEngine } from '@/intelligence/EventLoggingEngine';
+import { PoolClient } from 'pg';
 
 export interface UserSegment { id: string; name: string; }
 export interface EmailTemplate { id: string; name: string; content?: string; subject?: string; }
@@ -59,7 +60,9 @@ export class CampaignEngine {
     private async getCampaignMetrics(campaignId: string) {
         const res = await query(`
             SELECT
-                COUNT(*) as total_sent,
+                COUNT(*) FILTER (WHERE status = 'sent') as total_sent,
+                COUNT(*) FILTER (WHERE status = 'failed') as total_failed,
+                COUNT(*) FILTER (WHERE status = 'pending') as total_pending,
                 SUM(CASE WHEN status = 'opened' THEN 1 ELSE 0 END) as open_count,
                 SUM(CASE WHEN status = 'clicked' THEN 1 ELSE 0 END) as click_count
             FROM email_logs
@@ -68,11 +71,15 @@ export class CampaignEngine {
 
         const row = res.rows[0];
         const totalSent = parseInt(row.total_sent) || 0;
+        const totalFailed = parseInt(row.total_failed) || 0;
+        const totalPending = parseInt(row.total_pending) || 0;
         const openCount = parseInt(row.open_count) || 0;
         const clickCount = parseInt(row.click_count) || 0;
 
         return {
             totalSent,
+            totalFailed,
+            totalPending,
             openCount,
             openRate: totalSent > 0 ? ((openCount / totalSent) * 100).toFixed(1) + '%' : '0%',
             clickCount,
@@ -81,89 +88,203 @@ export class CampaignEngine {
     }
 
     // Execution
-    async executeCampaign(campaignId: string): Promise<void> {
+    async executeCampaign(campaignId: string): Promise<{
+        success: boolean;
+        sentCount: number;
+        failedCount: number;
+        status: string;
+        failedRecipients: Array<{ email: string; error: string }>;
+    }> {
         const campaign = await this.getCampaign(campaignId);
         if (!campaign) throw new Error('Campaign not found');
 
-        // Update status
-        await query('UPDATE campaigns SET status = $1 WHERE id = $2', ['active', campaignId]);
-
         // Fetch recipients (In a real app, this would use segments)
-        const contacts = await query('SELECT * FROM contacts WHERE stage != $1', ['churned']);
+        const contactsRes = await query('SELECT * FROM contacts WHERE stage != $1', ['churned']);
+        const contacts = contactsRes.rows;
 
-        console.log(`Starting campaign ${campaign.name} for ${contacts.rowCount} contacts.`);
+        console.log(`Starting campaign ${campaign.name} for ${contacts.length} contacts.`);
 
-        // Track recipients for event logging
-        const sentRecipients: Array<{ email: string; contact_id: string }> = [];
+        // Use transaction for atomic execution
+        return withTransaction(async (client: PoolClient) => {
+            // Mark campaign as IN_PROGRESS
+            await queryClient(
+                client,
+                'UPDATE campaigns SET status = $1, started_at = NOW() WHERE id = $2',
+                ['in_progress', campaignId]
+            );
 
-        for (const contact of contacts.rows) {
-            try {
-                // 1. Create log entry first to get an ID
-                const logRes = await query(
-                    `INSERT INTO email_logs (campaign_id, contact_id, sender, recipient, status)
-                     VALUES ($1, $2, $3, $4, $5)
-                     RETURNING id`,
-                    [campaignId, contact.id, 'noreply@founderos.local', contact.email, 'sent']
-                );
-                const logId = logRes.rows[0].id;
+            // Track recipients for event logging
+            const sentRecipients: Array<{ email: string; contact_id: string }> = [];
+            const failedRecipients: Array<{ email: string; error: string }> = [];
 
-                const compiledBody = this.compileTemplate(campaign.body, contact);
-                await emailClient.sendEmail({
-                    from: `noreply@founderos.local`, // Should be fetched from domain config
-                    to: contact.email,
-                    subject: campaign.subject,
-                    body: compiledBody
-                }, logId);
+            // Send emails one by one, tracking successes and failures
+            for (const contact of contacts) {
+                let logId: string | null = null;
 
-                // Track successful send
-                sentRecipients.push({
-                    email: contact.email,
-                    contact_id: contact.id
-                });
+                try {
+                    // 1. Create log entry as PENDING
+                    const logRes = await queryClient(
+                        client,
+                        `INSERT INTO email_logs (campaign_id, contact_id, sender, recipient, status, created_at)
+                         VALUES ($1, $2, $3, $4, $5, NOW())
+                         RETURNING id`,
+                        [campaignId, contact.id, 'noreply@founderos.local', contact.email, 'pending']
+                    );
+                    logId = logRes.rows[0].id;
 
-            } catch (error) {
-                console.error(`Failed to send campaign email to ${contact.email}:`, error);
+                    // 2. Actually send the email
+                    const compiledBody = this.compileTemplate(campaign.body, contact);
+                    await emailClient.sendEmail({
+                        from: `noreply@founderos.local`, // Should be fetched from domain config
+                        to: contact.email,
+                        subject: campaign.subject,
+                        body: compiledBody
+                    }, logId);
+
+                    // 3. Update log to SENT only if actually sent
+                    await queryClient(
+                        client,
+                        'UPDATE email_logs SET status = $1, sent_at = NOW() WHERE id = $2',
+                        ['sent', logId]
+                    );
+
+                    // Track successful send
+                    sentRecipients.push({
+                        email: contact.email,
+                        contact_id: contact.id
+                    });
+
+                } catch (sendError: any) {
+                    // Mark email log as FAILED with error message
+                    if (logId) {
+                        try {
+                            await queryClient(
+                                client,
+                                `UPDATE email_logs
+                                 SET status = $1, error_message = $2, failed_at = NOW()
+                                 WHERE id = $3`,
+                                ['failed', sendError.message || 'Unknown error', logId]
+                            );
+                        } catch (updateErr) {
+                            console.error('Failed to update email log status:', updateErr);
+                        }
+                    }
+
+                    failedRecipients.push({
+                        email: contact.email,
+                        error: sendError.message || 'Unknown error'
+                    });
+
+                    console.error(`Failed to send email to ${contact.email}:`, sendError.message);
+                }
             }
-        }
 
-        // Log campaign sends to event logging system
-        if (sentRecipients.length > 0) {
-            try {
-                await eventLoggingEngine.logCampaignSends(campaignId, sentRecipients);
-                console.log(`Event logged: ${sentRecipients.length} campaign sends recorded`);
-            } catch (err) {
-                console.error('Failed to log campaign sends to event system:', err);
+            // Determine final campaign status
+            const hasFailures = failedRecipients.length > 0;
+            const finalStatus = sentRecipients.length === 0 ? 'failed' :
+                               hasFailures ? 'completed_with_failures' :
+                               'completed';
+
+            // Update campaign with final status and counts
+            await queryClient(
+                client,
+                `UPDATE campaigns
+                 SET status = $1,
+                     sent_count = $2,
+                     failed_count = $3,
+                     completed_at = NOW()
+                 WHERE id = $4`,
+                [finalStatus, sentRecipients.length, failedRecipients.length, campaignId]
+            );
+
+            // Log campaign sends to event logging system (if any succeeded)
+            if (sentRecipients.length > 0) {
+                try {
+                    await eventLoggingEngine.logCampaignSends(campaignId, sentRecipients);
+                    console.log(`Event logged: ${sentRecipients.length} campaign sends recorded`);
+                } catch (err) {
+                    console.error('Failed to log campaign sends to event system:', err);
+                    // Don't throw - this is non-critical logging
+                }
             }
-        }
 
-        // Complete campaign
-        await query('UPDATE campaigns SET status = $1 WHERE id = $2', ['completed', campaignId]);
+            // Return results
+            return {
+                success: sentRecipients.length > 0,
+                sentCount: sentRecipients.length,
+                failedCount: failedRecipients.length,
+                status: finalStatus,
+                failedRecipients
+            };
+        }).catch((error) => {
+            // On transaction failure, mark campaign as FAILED
+            query(
+                'UPDATE campaigns SET status = $1, error_message = $2, failed_at = NOW() WHERE id = $3',
+                ['failed', error.message, campaignId]
+            ).catch(err => console.error('Failed to update campaign error state:', err));
+
+            throw error;
+        });
     }
 
     // Transactional emails
-    async sendTransactional(campaignId: string, contactId: string, data: any): Promise<void> {
+    async sendTransactional(campaignId: string, contactId: string, data: any): Promise<{
+        success: boolean;
+        logId: string;
+        error?: string;
+    }> {
         const campaign = await this.getCampaign(campaignId);
         const contactRes = await query('SELECT * FROM contacts WHERE id = $1', [contactId]);
         const contact = contactRes.rows[0];
 
         if (!campaign || !contact) throw new Error('Campaign or Contact not found');
 
-        // Create log entry first
-        const logRes = await query(
-            `INSERT INTO email_logs (campaign_id, contact_id, sender, recipient, status)
-             VALUES ($1, $2, $3, $4, $5)
-             RETURNING id`,
-            [campaignId, contactId, 'system@founderos.local', contact.email, 'sent']
-        );
-        const logId = logRes.rows[0].id;
+        let logId: string | null = null;
 
-        const compiledBody = this.compileTemplate(campaign.body, { ...contact, ...data });
-        await emailClient.sendEmail({
-            from: `system@founderos.local`,
-            to: contact.email,
-            subject: campaign.subject,
-            body: compiledBody
-        }, logId);
+        try {
+            // 1. Create log entry as PENDING
+            const logRes = await query(
+                `INSERT INTO email_logs (campaign_id, contact_id, sender, recipient, status, created_at)
+                 VALUES ($1, $2, $3, $4, $5, NOW())
+                 RETURNING id`,
+                [campaignId, contactId, 'system@founderos.local', contact.email, 'pending']
+            );
+            logId = logRes.rows[0].id;
+
+            // 2. Send the email
+            const compiledBody = this.compileTemplate(campaign.body, { ...contact, ...data });
+            await emailClient.sendEmail({
+                from: `system@founderos.local`,
+                to: contact.email,
+                subject: campaign.subject,
+                body: compiledBody
+            }, logId);
+
+            // 3. Update log to SENT only if actually sent
+            await query(
+                'UPDATE email_logs SET status = $1, sent_at = NOW() WHERE id = $2',
+                ['sent', logId]
+            );
+
+            return { success: true, logId };
+
+        } catch (sendError: any) {
+            // Mark log as FAILED if we created one
+            if (logId) {
+                try {
+                    await query(
+                        `UPDATE email_logs
+                         SET status = $1, error_message = $2, failed_at = NOW()
+                         WHERE id = $3`,
+                        ['failed', sendError.message || 'Unknown error', logId]
+                    );
+                } catch (updateErr) {
+                    console.error('Failed to update transactional email log:', updateErr);
+                }
+            }
+
+            throw sendError;
+        }
     }
 
     private compileTemplate(template: string, data: any): string {

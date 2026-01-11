@@ -7,13 +7,26 @@ import { useUI } from '@/context/UIContext';
 export const GlobalModal: React.FC = () => {
     const { modal, closeModal } = useUI();
 
+    const handleAttemptClose = () => {
+        if (modal.shouldPromptOnClose && modal.isDirty) {
+            // Show confirmation dialog
+            if (window.confirm('You have unsaved changes. Discard them?')) {
+                closeModal();
+            }
+        } else {
+            closeModal();
+        }
+    };
+
     useEffect(() => {
         const handleEsc = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') closeModal();
+            if (e.key === 'Escape') {
+                handleAttemptClose();
+            }
         };
         window.addEventListener('keydown', handleEsc);
         return () => window.removeEventListener('keydown', handleEsc);
-    }, [closeModal]);
+    }, [modal.shouldPromptOnClose, modal.isDirty]);
 
     if (!modal.isOpen) return null;
 
@@ -22,7 +35,7 @@ export const GlobalModal: React.FC = () => {
             {/* Backdrop */}
             <div
                 className="absolute inset-0 bg-[var(--ink)]/40 backdrop-blur-sm"
-                onClick={closeModal}
+                onClick={handleAttemptClose}
             />
 
             {/* Modal Content */}
@@ -30,7 +43,7 @@ export const GlobalModal: React.FC = () => {
                 <header className="px-8 pt-8 flex justify-between items-start">
                     <h2 className="text-2xl font-serif italic tracking-tight">{modal.title}</h2>
                     <button
-                        onClick={closeModal}
+                        onClick={handleAttemptClose}
                         className="p-1 text-zinc-400 hover:text-[var(--ink)] transition-colors"
                     >
                         <X size={20} />

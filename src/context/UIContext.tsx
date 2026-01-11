@@ -17,9 +17,12 @@ interface UIContextType {
         title: string;
         content: ReactNode;
         onClose: () => void;
+        isDirty?: boolean;
+        shouldPromptOnClose?: boolean;
     };
-    openModal: (title: string, content: ReactNode) => void;
+    openModal: (title: string, content: ReactNode, isDirty?: boolean) => void;
     closeModal: () => void;
+    setModalDirty: (isDirty: boolean) => void;
 
     // Toast State
     toasts: Toast[];
@@ -30,20 +33,32 @@ interface UIContextType {
 const UIContext = createContext<UIContextType | undefined>(undefined);
 
 export const UIProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-    const [modal, setModal] = useState<{ isOpen: boolean; title: string; content: ReactNode }>({
+    const [modal, setModal] = useState<{
+        isOpen: boolean;
+        title: string;
+        content: ReactNode;
+        isDirty?: boolean;
+        shouldPromptOnClose?: boolean;
+    }>({
         isOpen: false,
         title: '',
         content: null,
+        isDirty: false,
+        shouldPromptOnClose: false,
     });
 
     const [toasts, setToasts] = useState<Toast[]>([]);
 
-    const openModal = (title: string, content: ReactNode) => {
-        setModal({ isOpen: true, title, content });
+    const openModal = (title: string, content: ReactNode, isDirty: boolean = false) => {
+        setModal({ isOpen: true, title, content, isDirty, shouldPromptOnClose: isDirty });
     };
 
     const closeModal = () => {
         setModal({ ...modal, isOpen: false });
+    };
+
+    const setModalDirty = (isDirty: boolean) => {
+        setModal({ ...modal, isDirty, shouldPromptOnClose: isDirty });
     };
 
     const showToast = (message: string, type: ToastType = 'info') => {
@@ -65,6 +80,7 @@ export const UIProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
             modal: { ...modal, onClose: closeModal },
             openModal,
             closeModal,
+            setModalDirty,
             toasts,
             showToast,
             removeToast
