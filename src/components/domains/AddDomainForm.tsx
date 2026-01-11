@@ -19,7 +19,7 @@ export const AddDomainForm: React.FC<{ onSuccess: () => void }> = ({ onSuccess }
             const res = await fetch('/api/domains', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ domain_name: domainName }),
+                body: JSON.stringify({ domain: domainName }),
             });
 
             if (!res.ok) throw new Error('Failed to integrate domain');

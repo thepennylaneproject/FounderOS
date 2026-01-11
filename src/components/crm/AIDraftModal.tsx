@@ -45,6 +45,7 @@ export const AIDraftModal: React.FC<{ contact: any }> = ({ contact }) => {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
+                    contactId: contact.id,
                     to: contact.email,
                     subject: draft.subject,
                     body: draft.body
@@ -77,7 +78,7 @@ export const AIDraftModal: React.FC<{ contact: any }> = ({ contact }) => {
                     className="bg-white/10 border border-white/20 text-xs font-sans font-bold uppercase tracking-widest px-4 py-2 outline-none cursor-pointer"
                 >
                     <option value="outreach" className="text-black">Outreach</option>
-                    <option value="followup" className="text-black">Follow-up</option>
+                    <option value="follow-up" className="text-black">Follow-up</option>
                     <option value="closing" className="text-black">Closing</option>
                 </select>
             </div>

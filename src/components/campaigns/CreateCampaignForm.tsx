@@ -12,7 +12,7 @@ export const CreateCampaignForm: React.FC<{ onSuccess: () => void }> = ({ onSucc
         name: '',
         type: 'marketing',
         subject: '',
-        content: ''
+        body: ''
     });
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -144,13 +144,13 @@ export const CreateCampaignForm: React.FC<{ onSuccess: () => void }> = ({ onSucc
             <div className="space-y-2">
                 <label className="text-[10px] font-sans font-bold uppercase tracking-widest text-zinc-400">Message Content (HTML/Text)</label>
                 <textarea
-                    required
-                    rows={6}
-                    value={formData.content}
-                    onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                    className="w-full bg-white border border-black/5 p-3 text-sm font-sans focus:ring-0 focus:border-[var(--rose-gold)] transition-colors outline-none resize-none"
-                    placeholder="Your message surfaces here..."
-                />
+                        required
+                        rows={6}
+                        value={formData.body}
+                        onChange={(e) => setFormData({ ...formData, body: e.target.value })}
+                        className="w-full bg-white border border-black/5 p-3 text-sm font-sans focus:ring-0 focus:border-[var(--rose-gold)] transition-colors outline-none resize-none"
+                        placeholder="Your message surfaces here..."
+                    />
             </div>
 
             <div className="pt-4">

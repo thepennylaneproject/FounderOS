@@ -100,10 +100,10 @@ export class CampaignEngine {
             try {
                 // 1. Create log entry first to get an ID
                 const logRes = await query(
-                    `INSERT INTO email_logs (campaign_id, contact_id, status)
-                     VALUES ($1, $2, $3)
+                    `INSERT INTO email_logs (campaign_id, contact_id, sender, recipient, status)
+                     VALUES ($1, $2, $3, $4, $5)
                      RETURNING id`,
-                    [campaignId, contact.id, 'sent']
+                    [campaignId, contact.id, 'noreply@founderos.local', contact.email, 'sent']
                 );
                 const logId = logRes.rows[0].id;
 
@@ -150,10 +150,10 @@ export class CampaignEngine {
 
         // Create log entry first
         const logRes = await query(
-            `INSERT INTO email_logs (campaign_id, contact_id, status)
-             VALUES ($1, $2, $3)
+            `INSERT INTO email_logs (campaign_id, contact_id, sender, recipient, status)
+             VALUES ($1, $2, $3, $4, $5)
              RETURNING id`,
-            [campaignId, contactId, 'sent']
+            [campaignId, contactId, 'system@founderos.local', contact.email, 'sent']
         );
         const logId = logRes.rows[0].id;
 

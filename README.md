@@ -44,3 +44,31 @@ You can connect to the Postgres database on port `5432` with:
 - **User:** `founderos`
 - **Password:** `changeme123` (or as set in `.env`)
 - **Database:** `founderos`
+
+## Unified Inbox MVP
+
+### Run the app
+```bash
+docker compose up --build
+```
+
+### Seed inbox data
+```bash
+DATABASE_URL=postgresql://founderos:changeme123@localhost:5432/founderos node scripts/seed-inbox.js
+curl -X POST http://localhost:3000/api/inbox/reclassify
+```
+
+### Run inbox MVP tests
+```bash
+API_BASE=http://localhost:3000 DATABASE_URL=postgresql://founderos:changeme123@localhost:5432/founderos npm run test:inbox
+```
+Or:
+```bash
+make test-inbox
+```
+
+### Where to test
+- Inbox: http://localhost:3000/inbox
+- Receipts: http://localhost:3000/inbox/receipts
+- Automations: http://localhost:3000/automations
+- Dashboard: http://localhost:3000/

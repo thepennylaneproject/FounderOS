@@ -13,12 +13,13 @@ export async function GET() {
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        if (!body.domain) {
+        const domain = body.domain || body.domain_name;
+        if (!domain) {
             return NextResponse.json({ error: 'Domain name is required' }, { status: 400 });
         }
-        await domainManager.addDomain(body);
-        const domain = await domainManager.getDomain(body.domain);
-        return NextResponse.json(domain);
+        await domainManager.addDomain({ ...body, domain });
+        const record = await domainManager.getDomain(domain);
+        return NextResponse.json(record);
     } catch (error: any) {
         return NextResponse.json({ error: error.message }, { status: 500 });
     }

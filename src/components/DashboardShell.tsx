@@ -15,7 +15,6 @@ import {
     Plus,
 } from 'lucide-react';
 import { useUI } from '@/context/UIContext';
-import { useUser } from '@/context/UserContext';
 import { AddContactForm } from '@/components/crm/AddContactForm';
 import { AddDomainForm } from '@/components/domains/AddDomainForm';
 import { CreateCampaignForm } from '@/components/campaigns/CreateCampaignForm';
@@ -33,44 +32,44 @@ const SidebarItem: React.FC<{ icon: any, label: string, href: string, active?: b
 export const DashboardShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const pathname = usePathname();
     const { openModal } = useUI();
-    const { user } = useUser();
 
     const getPageTitle = () => {
         switch (pathname) {
-            case '/': return 'Overview';
-            case '/domains': return 'Email Domains';
-            case '/campaigns': return 'Campaigns';
-            case '/crm': return 'CRM';
-            case '/automations': return 'Workflows';
+            case '/': return 'Founder Intelligence';
+            case '/domains': return 'Domain Infrastructure';
+            case '/campaigns': return 'Marketing Hub';
+            case '/crm': return 'Customer CRM';
+            case '/automations': return 'Automation Rules';
             case '/inbox': return 'Unified Inbox';
+            case '/inbox/receipts': return 'Receipts';
             default: return 'FounderOS';
         }
     };
 
     const handleQuickLaunch = () => {
         openModal(
-            'Quick Actions',
+            'Quick Launch Dispatch',
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <button
-                    onClick={() => openModal('Add Email Domain', <AddDomainForm onSuccess={() => { }} />)}
+                    onClick={() => openModal('Add Domain Infrastructure', <AddDomainForm onSuccess={() => { }} />)}
                     className="flex items-center gap-4 p-6 border border-black/5 hover:border-[var(--forest-green)] hover:bg-black/[0.01] transition-all text-left"
                 >
                     <div className="p-3 bg-[var(--ivory)] rounded-sm border border-black/5 text-[var(--forest-green)]"><ShieldCheck size={20} /></div>
-                    <div><p className="text-sm font-sans font-bold uppercase tracking-widest leading-none mb-1">Email Domain</p><p className="text-[10px] text-zinc-400">Add New Domain</p></div>
+                    <div><p className="text-sm font-sans font-bold uppercase tracking-widest leading-none mb-1">Infrastructure</p><p className="text-[10px] text-zinc-400">Add New Domain</p></div>
                 </button>
                 <button
                     onClick={() => openModal('Add New Contact', <AddContactForm onSuccess={() => { }} />)}
                     className="flex items-center gap-4 p-6 border border-black/5 hover:border-[var(--rose-gold)] hover:bg-black/[0.01] transition-all text-left"
                 >
                     <div className="p-3 bg-[var(--ivory)] rounded-sm border border-black/5 text-[var(--rose-gold)]"><Users size={20} /></div>
-                    <div><p className="text-sm font-sans font-bold uppercase tracking-widest leading-none mb-1">CRM Growth</p><p className="text-[10px] text-zinc-400">Add New Contact</p></div>
+                    <div><p className="text-sm font-sans font-bold uppercase tracking-widest leading-none mb-1">CRM Growth</p><p className="text-[10px] text-zinc-400">Add New Lead</p></div>
                 </button>
                 <button
-                    onClick={() => openModal('Create Campaign', <CreateCampaignForm onSuccess={() => { }} />)}
+                    onClick={() => openModal('Initialize New Campaign', <CreateCampaignForm onSuccess={() => { }} />)}
                     className="flex items-center gap-4 p-6 border border-black/5 hover:bg-[var(--forest-green)] hover:text-[var(--ivory)] transition-all group text-left"
                 >
                     <div className="p-3 bg-[var(--ivory)] rounded-sm border border-black/5 text-[var(--ink)] group-hover:text-[var(--forest-green)]"><Send size={20} /></div>
-                    <div><p className="text-sm font-sans font-bold uppercase tracking-widest leading-none mb-1 text-[var(--ink)] group-hover:text-[var(--ivory)]">Campaigns</p><p className="text-[10px] text-zinc-400 group-hover:text-white/60">Create New</p></div>
+                    <div><p className="text-sm font-sans font-bold uppercase tracking-widest leading-none mb-1 text-[var(--ink)] group-hover:text-[var(--ivory)]">Dispatch</p><p className="text-[10px] text-zinc-400 group-hover:text-white/60">New Campaign</p></div>
                 </button>
             </div>
         );
@@ -90,22 +89,19 @@ export const DashboardShell: React.FC<{ children: React.ReactNode }> = ({ childr
 
                 <nav className="flex-1 space-y-1">
                     <SidebarItem icon={Zap} label="Overview" href="/" active={pathname === '/'} />
-                    <SidebarItem icon={ShieldCheck} label="Email Domains" href="/domains" active={pathname === '/domains'} />
+                    <SidebarItem icon={ShieldCheck} label="Domain Health" href="/domains" active={pathname === '/domains'} />
                     <SidebarItem icon={Send} label="Campaigns" href="/campaigns" active={pathname === '/campaigns'} />
-                    <SidebarItem icon={Workflow} label="Workflows" href="/automations" active={pathname === '/automations'} />
+                    <SidebarItem icon={Inbox} label="Unified Inbox" href="/inbox" active={pathname === '/inbox'} />
+                    <SidebarItem icon={Workflow} label="Automations" href="/automations" active={pathname === '/automations'} />
                     <SidebarItem icon={Users} label="CRM" href="/crm" active={pathname === '/crm'} />
-                    {/* Inbox feature deferred - implementation incomplete */}
-                    {/* <SidebarItem icon={Inbox} label="Unified Inbox" href="/inbox" active={pathname === '/inbox'} /> */}
                 </nav>
 
                 <div className="mt-auto p-6 border-t border-black/5">
                     <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-[var(--rose-gold-muted)] border border-[var(--rose-gold)] flex items-center justify-center text-xs font-serif font-bold">
-                            {user.name.charAt(0).toUpperCase()}
-                        </div>
+                        <div className="w-8 h-8 rounded-full bg-[var(--rose-gold-muted)] border border-[var(--rose-gold)]" />
                         <div className="flex-1 min-w-0">
-                            <p className="text-xs font-semibold truncate">{user.name}</p>
-                            <p className="text-[10px] text-zinc-500 truncate">{user.email}</p>
+                            <p className="text-xs font-semibold truncate">Admin User</p>
+                            <p className="text-[10px] text-zinc-500 truncate">admin@founderos.local</p>
                         </div>
                         <Settings size={14} className="text-zinc-400 cursor-pointer hover:text-[var(--ink)]" />
                     </div>
@@ -117,12 +113,7 @@ export const DashboardShell: React.FC<{ children: React.ReactNode }> = ({ childr
                 <header className="px-12 pt-12 flex justify-between items-end mb-8 sticky top-0 bg-[var(--ivory)]/80 backdrop-blur-md z-10 pb-4 border-b border-transparent">
                     <div>
                         <h2 className="text-4xl font-serif mb-1 tracking-tight">{getPageTitle()}</h2>
-                        <p className="text-xs font-sans text-zinc-500 tracking-tight">
-                            {pathname === '/' ? 'All-in-one email + CRM for startup founders' : 'System Status: '}
-                            <span className="text-[var(--forest-green)] font-medium underline underline-offset-4 decoration-black/5">
-                                {pathname === '/' ? '' : 'Fully Operational'}
-                            </span>
-                        </p>
+                        <p className="text-xs font-sans text-zinc-500 tracking-tight">System Status: <span className="text-[var(--forest-green)] font-medium underline underline-offset-4 decoration-black/5">Fully Operational</span></p>
                     </div>
                     <button
                         onClick={handleQuickLaunch}

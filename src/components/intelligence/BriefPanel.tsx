@@ -7,6 +7,7 @@ import { AIDraftModal } from '@/components/crm/AIDraftModal';
 
 interface SuggestedAction {
     type: 'follow_up' | 'rescue' | 'close';
+    contactId: string;
     contactName: string;
     contactEmail: string;
     reason: string;
@@ -57,6 +58,7 @@ export const BriefPanel: React.FC = () => {
         openModal(
             'Intelligence Email Draft',
             <AIDraftModal contact={{
+                id: action.contactId,
                 email: action.contactEmail,
                 first_name: action.contactName.split(' ')[0],
                 last_name: action.contactName.split(' ')[1] || '',

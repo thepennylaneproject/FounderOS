@@ -56,6 +56,15 @@ export default function DomainsPage() {
         );
     };
 
+    const handleValidate = async (domainName: string) => {
+        try {
+            await fetch(`/api/domains/${domainName}/validate`, { method: 'POST' });
+            fetchDomains();
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
     const getDeliverabilityForDomain = (domainName: string) => {
         return deliverability.find(d => d.domain === domainName);
     };
@@ -103,7 +112,7 @@ export default function DomainsPage() {
                 {loading ? (
                     <div className="col-span-full p-12 text-center text-zinc-400 italic">Loading domains...</div>
                 ) : domains.length > 0 ? domains.map(domain => {
-                    const intel = getDeliverabilityForDomain(domain.domain_name);
+                    const intel = getDeliverabilityForDomain(domain.name);
                     return (
                         <div key={domain.id} className="editorial-card group">
                             <div className="flex justify-between items-start mb-6">
@@ -114,7 +123,7 @@ export default function DomainsPage() {
                                     {domain.status}
                                 </span>
                             </div>
-                            <h3 className="text-2xl font-serif mb-2">{domain.domain_name}</h3>
+                            <h3 className="text-2xl font-serif mb-2">{domain.name}</h3>
                             <p className="text-xs font-sans text-zinc-500 mb-8 lowercase italic">Registered {new Date(domain.created_at).toLocaleDateString()}</p>
 
                             {/* Inbox Placement Probability */}
@@ -158,6 +167,12 @@ export default function DomainsPage() {
                                     </div>
                                 ))}
                             </div>
+                            <button
+                                onClick={() => handleValidate(domain.name)}
+                                className="mt-6 w-full ink-button-ghost text-[10px] font-sans font-bold uppercase tracking-widest py-2"
+                            >
+                                Validate DNS
+                            </button>
                         </div>
                     )
                 }) : (

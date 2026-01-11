@@ -1,24 +1,18 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import {
     ShieldCheck,
     Send,
     Workflow,
     Users,
     Zap,
-    ChevronRight,
     TrendingUp,
     Mail,
-    MoreVertical,
-    AlertCircle
+    MoreVertical
 } from 'lucide-react';
 
-import { useUI } from '@/context/UIContext';
-import { BriefPanel } from '@/components/intelligence/BriefPanel';
-import { OnboardingWelcome } from '@/components/dashboard/OnboardingWelcome';
-import { CampaignDetailModal } from '@/components/campaigns/CampaignDetailModal';
+import Link from 'next/link';
 
 
 const StatCard: React.FC<{ label: string, value: string | number, trend: string, icon: any }> = ({ label, value, trend, icon: Icon }) => (
@@ -37,8 +31,6 @@ const StatCard: React.FC<{ label: string, value: string | number, trend: string,
 );
 
 export default function OverviewPage() {
-    const { showToast, openModal } = useUI();
-    const router = useRouter();
     const [stats, setStats] = useState({
         domains: 0,
         contacts: 0,
@@ -48,101 +40,84 @@ export default function OverviewPage() {
     const [campaigns, setCampaigns] = useState<any[]>([]);
     const [workflows, setWorkflows] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const [fetchError, setFetchError] = useState<string | null>(null);
-
-    const fetchData = async () => {
-        setFetchError(null);
-        setLoading(true);
-        try {
-            const [domainsRes, contactsRes, campaignsRes, workflowsRes] = await Promise.all([
-                fetch('/api/domains'),
-                fetch('/api/contacts'),
-                fetch('/api/campaigns'),
-                fetch('/api/workflows')
-            ]);
-
-            if (!domainsRes.ok || !contactsRes.ok || !campaignsRes.ok || !workflowsRes.ok) {
-                throw new Error('One or more requests failed');
-            }
-
-            const domains = await domainsRes.json();
-            const contacts = await contactsRes.json();
-            const campaigns = await campaignsRes.json();
-            const workflows = await workflowsRes.json();
-
-            const avgHealth = Math.round(contacts.length > 0
-                ? contacts.reduce((acc: number, c: any) => acc + (c.health_score || 0), 0) / contacts.length
-                : 100);
-
-            setStats({
-                domains: domains.length,
-                contacts: contacts.length,
-                avgHealth,
-                activeWorkflows: workflows.filter((w: any) => w.status === 'active').length
-            });
-
-            setCampaigns(campaigns.slice(0, 5));
-            setWorkflows(workflows.slice(0, 3));
-        } catch (error) {
-            console.error('Error fetching dashboard data:', error);
-            setFetchError('We couldn’t load your dashboard data. Please retry.');
-            showToast('Dashboard data failed to load', 'error');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleOpenCampaign = (campaign: any) => {
-        openModal(
-            'Review & Send Campaign',
-            <CampaignDetailModal campaign={campaign} onSuccess={fetchData} />
-        );
-    };
+    const [brief, setBrief] = useState({
+        now_count: 0,
+        waiting_count: 0,
+        needs_reply_count: 0,
+        needs_review_count: 0,
+        new_receipts_count: 0,
+        month_total: 0,
+        risk_count: 0
+    });
 
     useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const [domainsRes, contactsRes, campaignsRes, workflowsRes, briefRes] = await Promise.all([
+                    fetch('/api/domains'),
+                    fetch('/api/contacts'),
+                    fetch('/api/campaigns'),
+                    fetch('/api/workflows'),
+                    fetch('/api/inbox/brief')
+                ]);
+
+                const domains = await domainsRes.json();
+                const contacts = await contactsRes.json();
+                const campaigns = await campaignsRes.json();
+                const workflows = await workflowsRes.json();
+                const briefData = await briefRes.json();
+
+                const avgHealth = Math.round(contacts.length > 0
+                    ? contacts.reduce((acc: number, c: any) => acc + (c.health_score || 0), 0) / contacts.length
+                    : 100);
+
+                setStats({
+                    domains: domains.length,
+                    contacts: contacts.length,
+                    avgHealth,
+                    activeWorkflows: workflows.filter((w: any) => w.status === 'active').length
+                });
+
+                setCampaigns(campaigns.slice(0, 5));
+                setWorkflows(workflows.slice(0, 3));
+                setBrief(briefData);
+            } catch (error) {
+                console.error('Error fetching dashboard data:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
         fetchData();
     }, []);
 
-    if (loading) {
-        return (
-            <div className="p-12 text-center text-zinc-400 italic">
-                Loading your workspace...
-            </div>
-        );
-    }
-
-    if (fetchError) {
-        return (
-            <div className="editorial-card max-w-3xl mx-auto text-center space-y-6 animate-in fade-in duration-500">
-                <div className="flex items-center justify-center gap-2 text-amber-700">
-                    <AlertCircle size={18} />
-                    <p className="text-sm font-sans">{fetchError}</p>
-                </div>
-                <button
-                    className="ink-button text-xs font-sans font-bold uppercase tracking-widest px-6 py-2"
-                    onClick={fetchData}
-                >
-                    Retry loading
-                </button>
-            </div>
-        );
-    }
-
-    // Show onboarding for new users
-    if (stats.domains === 0 && stats.contacts === 0) {
-        return (
-            <OnboardingWelcome
-                onDomainAdded={fetchData}
-                onContactAdded={fetchData}
-                onCampaignCreated={fetchData}
-            />
-        );
-    }
+    const briefingSentence = () => {
+        if (brief.risk_count > 0) {
+            return `${brief.risk_count} high-risk item${brief.risk_count === 1 ? '' : 's'} need attention today. ${brief.now_count} in Now, ${brief.waiting_count} waiting, ${brief.needs_reply_count} need repl${brief.needs_reply_count === 1 ? 'y' : 'ies'}.`;
+        }
+        if (brief.now_count === 0 && brief.waiting_count === 0 && brief.needs_reply_count === 0) {
+            return `No fires. ${brief.needs_review_count} item${brief.needs_review_count === 1 ? '' : 's'} need review.`;
+        }
+        return `${brief.now_count} in Now, ${brief.waiting_count} waiting, ${brief.needs_reply_count} need repl${brief.needs_reply_count === 1 ? 'y' : 'ies'}.`;
+    };
 
     return (
         <div className="space-y-16 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            {/* Strategic Brief - Proactive AI Intelligence */}
-            <BriefPanel />
+            {/* Daily Briefing */}
+            <section className="grid grid-cols-1 md:grid-cols-5 gap-6">
+                {[
+                    { label: 'Now', value: brief.now_count, href: '/inbox?lane=now' },
+                    { label: 'Waiting', value: brief.waiting_count, href: '/inbox?lane=waiting' },
+                    { label: 'Needs Reply', value: brief.needs_reply_count, href: '/inbox?category=needs_reply' },
+                    { label: 'Receipts', value: brief.new_receipts_count, href: '/inbox/receipts' },
+                    { label: 'Risk', value: brief.risk_count, href: '/inbox?risk=high' }
+                ].map((item) => (
+                    <Link key={item.label} href={item.href} className="editorial-card hover:border-[var(--forest-green)] transition-all">
+                        <p className="text-[10px] font-sans uppercase tracking-widest text-zinc-400">{item.label}</p>
+                        <p className="text-3xl font-serif mt-3">{item.value}</p>
+                    </Link>
+                ))}
+            </section>
 
             {/* Essential Stats */}
             <section className="grid grid-cols-1 md:grid-cols-4 gap-x-12">
@@ -157,33 +132,21 @@ export default function OverviewPage() {
                 <div className="lg:col-span-2">
                     <div className="flex justify-between items-center mb-6 pb-2 border-b-2 border-[var(--ink)]">
                         <h3 className="text-xl font-serif lowercase tracking-tighter">recent campaigns</h3>
-                        <button
-                            onClick={() => router.push('/campaigns')}
-                            className="text-[10px] font-sans font-bold tracking-widest uppercase text-zinc-400 cursor-pointer hover:text-[var(--ink)] transition-colors flex items-center gap-1"
-                        >
-                            view all <ChevronRight size={12} />
-                        </button>
+                        <span className="text-[10px] font-sans font-bold tracking-widest uppercase text-zinc-400 cursor-pointer hover:text-[var(--ink)] transition-colors">view all</span>
                     </div>
 
                     <div className="space-y-0 italic font-serif">
                         {campaigns.length > 0 ? campaigns.map((c, i) => (
-                            <div key={c.id} className="group flex items-center gap-8 py-6 border-b border-black/5 hover:bg-black/[0.02] transition-colors cursor-pointer px-4 -mx-4" onClick={() => handleOpenCampaign(c)}>
+                            <div key={c.id} className="group flex items-center gap-8 py-6 border-b border-black/5 hover:bg-black/[0.02] transition-colors cursor-pointer px-4 -mx-4">
                                 <span className="text-xs font-sans not-italic font-bold text-zinc-300">{(i + 1).toString().padStart(2, '0')}</span>
                                 <div className="flex-1 min-w-0">
                                     <h4 className="text-lg leading-tight group-hover:translate-x-1 transition-transform">{c.name}</h4>
                                     <p className="text-sm font-sans not-italic text-zinc-500 mt-1">{c.type} — {c.status}</p>
                                 </div>
-                                {c.status === 'draft' ? (
-                                    <button className="px-3 py-1 text-xs font-sans font-bold uppercase tracking-widest text-white bg-amber-600 hover:bg-amber-700 transition-colors rounded" onClick={(e) => { e.stopPropagation(); handleOpenCampaign(c); }}>Send</button>
-                                ) : (
-                                    <Mail size={16} className="text-zinc-200 group-hover:text-[var(--rose-gold)] transition-colors" />
-                                )}
+                                <Mail size={16} className="text-zinc-200 group-hover:text-[var(--rose-gold)] transition-colors" />
                             </div>
                         )) : (
-                            <div className="text-center py-12">
-                                <p className="text-sm font-sans text-zinc-400 italic">No campaigns yet</p>
-                                <p className="text-xs font-sans text-zinc-400 mt-2">Create your first campaign to get started</p>
-                            </div>
+                            <p className="text-sm font-sans text-zinc-400 py-12 text-center underline underline-offset-4 decoration-black/5">No recent campaigns to display.</p>
                         )}
                     </div>
                 </div>
@@ -192,17 +155,16 @@ export default function OverviewPage() {
                 <div className="space-y-12">
                     <div className="p-8 bg-[var(--forest-green)] text-[var(--ivory)] rounded-sm relative overflow-hidden group">
                         <div className="relative z-10">
-                            <h3 className="text-2xl font-serif mb-4 leading-tight">Your Weekly Report <br />is ready for review.</h3>
-                            <p className="text-xs font-sans opacity-70 mb-8 leading-relaxed">We've identified {stats.domains} active domains and {stats.contacts} total contacts.</p>
-                            <button
-                                onClick={() => {
-                                    fetch('/api/contacts/score', { method: 'POST' });
-                                    showToast('AI Intelligence report generation queued', 'success');
-                                }}
+                            <h3 className="text-2xl font-serif mb-4 leading-tight">Today&apos;s Inbox Brief</h3>
+                            <p className="text-xs font-sans opacity-70 mb-8 leading-relaxed">
+                                {briefingSentence()}
+                            </p>
+                            <Link
+                                href="/inbox"
                                 className="bg-[var(--ivory)] text-[var(--forest-green)] px-4 py-2 text-xs font-sans font-bold uppercase tracking-widest hover:bg-[var(--rose-gold-muted)] transition-colors"
                             >
-                                Read Analysis
-                            </button>
+                                Open Inbox
+                            </Link>
                         </div>
                         <TrendingUp className="absolute -bottom-8 -right-8 w-48 h-48 opacity-10 group-hover:scale-110 transition-transform duration-700" />
                     </div>
@@ -219,7 +181,7 @@ export default function OverviewPage() {
                                     <p className="text-sm font-sans font-medium text-zinc-600 truncate flex-1">{w.name}</p>
                                 </div>
                             )) : (
-                                <p className="text-xs font-sans text-zinc-400 italic text-center py-4">No workflows yet</p>
+                                <p className="text-xs font-sans text-zinc-400 italic">No active automations in flight.</p>
                             )}
                         </div>
                     </div>

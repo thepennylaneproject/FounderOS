@@ -37,15 +37,15 @@ export async function calculateMomentum(contactId?: string): Promise<ContactMome
                 c.last_name,
                 c.company_name,
                 c.health_score,
-                COUNT(CASE WHEN el.event_type = 'open' AND el.created_at > NOW() - INTERVAL '7 days' THEN 1 END) as recent_opens,
-                COUNT(CASE WHEN el.event_type = 'click' AND el.created_at > NOW() - INTERVAL '7 days' THEN 1 END) as recent_clicks,
-                COALESCE(EXTRACT(DAY FROM NOW() - MAX(el.created_at)), 30) as days_since_last,
+                COUNT(CASE WHEN el.opened_at IS NOT NULL AND el.opened_at > NOW() - INTERVAL '7 days' THEN 1 END) as recent_opens,
+                COUNT(CASE WHEN el.clicked_at IS NOT NULL AND el.clicked_at > NOW() - INTERVAL '7 days' THEN 1 END) as recent_clicks,
+                COALESCE(EXTRACT(DAY FROM NOW() - MAX(COALESCE(el.opened_at, el.clicked_at, el.created_at))), 30) as days_since_last,
                 STRING_AGG(DISTINCT 
-                    CASE WHEN el.event_type = 'open' AND el.created_at > NOW() - INTERVAL '3 days' 
+                    CASE WHEN el.opened_at IS NOT NULL AND el.opened_at > NOW() - INTERVAL '3 days' 
                     THEN LOWER(cam.name) END, ', '
                 ) as recent_campaign_names
             FROM contacts c
-            LEFT JOIN email_logs el ON c.email = el.recipient
+            LEFT JOIN email_logs el ON c.id = el.contact_id
             LEFT JOIN campaigns cam ON el.campaign_id = cam.id
             ${contactId ? 'WHERE c.id = $1' : ''}
             GROUP BY c.id, c.email, c.first_name, c.last_name, c.company_name, c.health_score

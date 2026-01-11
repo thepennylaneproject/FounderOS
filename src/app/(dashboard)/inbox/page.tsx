@@ -1,189 +1,319 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Inbox, Mail, Search, Archive, Trash2, Send, RefreshCw } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
+import { AlertTriangle, ChevronRight, FileText, RefreshCw } from 'lucide-react';
 import { useUI } from '@/context/UIContext';
 
-export default function InboxPage() {
-    const [emails, setEmails] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [selectedEmail, setSelectedEmail] = useState<any>(null);
-    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-    const [fetchError, setFetchError] = useState<string | null>(null);
-    const { showToast } = useUI();
+type Lane = 'now' | 'next' | 'waiting' | 'info' | 'noise';
 
-    const fetchEmails = async () => {
-        setFetchError(null);
+interface ThreadRow {
+    thread_id: string;
+    lane: Lane;
+    needs_review: boolean;
+    category: string;
+    reason: string;
+    rule_id: string | null;
+    confidence: number;
+    risk_level: 'low' | 'medium' | 'high';
+    evidence: string[];
+    subject: string;
+    snippet: string;
+    received_at: string;
+    from_name: string;
+    from_email: string;
+    message_count: number;
+    has_receipt: boolean;
+}
+
+interface Tile {
+    category: string;
+    count: number;
+    oldest_days: number;
+    top_senders: string[];
+    risk_count: number;
+}
+
+export default function InboxPage() {
+    const [lane, setLane] = useState<Lane>('now');
+    const [threads, setThreads] = useState<ThreadRow[]>([]);
+    const [selectedThread, setSelectedThread] = useState<string | null>(null);
+    const [threadDetail, setThreadDetail] = useState<any>(null);
+    const [tiles, setTiles] = useState<Tile[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [needsReviewOnly, setNeedsReviewOnly] = useState(false);
+    const [riskOnly, setRiskOnly] = useState(false);
+    const { showToast } = useUI();
+    const searchParams = useSearchParams();
+
+    const fetchThreads = async () => {
         setLoading(true);
         try {
-            const res = await fetch('/api/emails');
+            const params = new URLSearchParams();
+            if (!riskOnly) params.set('lane', lane);
+            if (needsReviewOnly) params.set('needs_review', 'true');
+            if (riskOnly) params.set('risk', 'high');
+            const categoryFilter = searchParams.get('category');
+            if (categoryFilter) params.set('category', categoryFilter);
+            const res = await fetch(`/api/inbox/threads?${params.toString()}`);
             const data = await res.json();
-            setEmails(data);
-        } catch (err) {
-            console.error(err);
-            setFetchError('We couldn’t load your inbox. Please retry.');
-            showToast('Inbox failed to sync', 'error');
+            setThreads(data);
+            if (!selectedThread && data.length > 0) {
+                setSelectedThread(data[0].thread_id);
+            }
         } finally {
             setLoading(false);
         }
     };
 
+    const fetchTiles = async () => {
+        const res = await fetch('/api/inbox/summary');
+        const data = await res.json();
+        setTiles(data.tiles || []);
+    };
+
+    const fetchThreadDetail = async (threadId: string) => {
+        const res = await fetch(`/api/inbox/threads/${threadId}`);
+        const data = await res.json();
+        setThreadDetail(data);
+    };
+
     useEffect(() => {
-        fetchEmails();
+        fetchThreads();
+    }, [lane, needsReviewOnly, riskOnly, searchParams]);
+
+    useEffect(() => {
+        const laneParam = searchParams.get('lane') as Lane | null;
+        if (laneParam && ['now', 'next', 'waiting', 'info', 'noise'].includes(laneParam)) {
+            setLane(laneParam);
+        }
+    }, [searchParams]);
+
+    useEffect(() => {
+        const riskParam = searchParams.get('risk');
+        setRiskOnly(riskParam === 'high');
+    }, [searchParams]);
+
+    useEffect(() => {
+        fetchTiles();
     }, []);
 
-    const handleRefresh = () => {
-        fetchEmails();
-        showToast('Synchronizing mailbox...', 'info');
+    useEffect(() => {
+        if (selectedThread) fetchThreadDetail(selectedThread);
+    }, [selectedThread]);
+
+    useEffect(() => {
+        if (threads.length === 0) {
+            setSelectedThread(null);
+            setThreadDetail(null);
+            return;
+        }
+        if (selectedThread && threads.some((t) => t.thread_id === selectedThread)) return;
+        setSelectedThread(threads[0].thread_id);
+    }, [threads, selectedThread]);
+
+    const handleLaneMove = async (threadId: string, newLane: Lane) => {
+        await fetch(`/api/inbox/threads/${threadId}/lane`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ lane: newLane })
+        });
+        showToast(`Thread moved to ${newLane}`, 'success');
+        fetchThreads();
+        fetchTiles();
     };
 
-    const handleConfirmDelete = () => {
-        if (selectedEmail) {
-            // Remove email from list
-            setEmails(emails.filter(e => e.id !== selectedEmail.id));
-            setSelectedEmail(null);
-            setShowDeleteConfirm(false);
-            showToast('Email deleted', 'success');
-        }
+    const handleNeedsReviewToggle = async (threadId: string, nextValue: boolean) => {
+        await fetch(`/api/inbox/threads/${threadId}/needs-review`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ needs_review: nextValue })
+        });
+        fetchThreads();
     };
+
+    const selected = useMemo(
+        () => threads.find((t) => t.thread_id === selectedThread) || null,
+        [threads, selectedThread]
+    );
 
     return (
-        <div className="h-[calc(100vh-14rem)] flex shadow-sm border border-black/5 rounded-sm overflow-hidden bg-white/40 backdrop-blur-sm animate-in fade-in duration-500 relative">
-            {/* Folder Sidebar */}
-            <aside className="w-20 border-r border-black/5 flex flex-col items-center py-8 gap-8 bg-white/20">
-                <button className="p-3 text-[var(--forest-green)] bg-[var(--ivory)] rounded-sm border border-black/5"><Inbox size={20} /></button>
-                <button className="p-3 text-zinc-400 hover:text-[var(--ink)]"><Send size={20} /></button>
-                <button className="p-3 text-zinc-400 hover:text-[var(--ink)]"><Archive size={20} /></button>
-                <button
-                    onClick={handleRefresh}
-                    className="p-3 text-zinc-400 hover:text-[var(--ink)] mt-auto"
-                >
-                    <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
-                </button>
-            </aside>
+        <div className="space-y-10 animate-in fade-in slide-in-from-bottom-2 duration-500">
+            <section className="grid grid-cols-1 md:grid-cols-6 gap-4">
+                {tiles.map((tile) => (
+                    <Link
+                        key={tile.category}
+                        href={`/inbox?category=${tile.category}`}
+                        className="editorial-card hover:border-[var(--forest-green)] transition-all"
+                    >
+                        <p className="text-[10px] font-sans font-bold uppercase tracking-widest text-zinc-400">{tile.category.replace('_', ' ')}</p>
+                        <div className="flex items-center justify-between mt-3">
+                            <span className="text-2xl font-serif">{tile.count}</span>
+                            {tile.risk_count > 0 && (
+                                <span className="text-[10px] font-sans font-bold uppercase tracking-widest text-red-500 flex items-center gap-1">
+                                    <AlertTriangle size={12} /> {tile.risk_count}
+                                </span>
+                            )}
+                        </div>
+                        <p className="text-[10px] font-sans text-zinc-400 mt-2">Oldest: {tile.oldest_days}d</p>
+                        <p className="text-[10px] font-sans text-zinc-400">Top: {tile.top_senders.join(', ') || '—'}</p>
+                    </Link>
+                ))}
+            </section>
 
-            {/* Message List */}
-            <div className="w-96 border-r border-black/5 flex flex-col bg-white/20">
-                <div className="p-6 border-b border-black/5">
-                    <h2 className="text-xl font-serif italic mb-4 lowercase tracking-tight">unified inbox</h2>
-                    <div className="relative">
-                        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
-                        <input
-                            type="text"
-                            placeholder="Search communications..."
-                            className="w-full bg-white/50 border border-black/5 text-xs font-sans pl-10 h-10 rounded-sm focus:ring-0 outline-none"
-                        />
+            <section className="flex items-center gap-4">
+                {(['now', 'next', 'waiting', 'info', 'noise'] as Lane[]).map((value) => (
+                    <button
+                        key={value}
+                        onClick={() => setLane(value)}
+                        className={`px-4 py-2 text-[10px] font-sans font-bold uppercase tracking-widest border ${lane === value ? 'bg-[var(--forest-green)] text-[var(--ivory)]' : 'border-black/5 text-zinc-500'}`}
+                    >
+                        {value}
+                    </button>
+                ))}
+                <button
+                    onClick={() => setNeedsReviewOnly((v) => !v)}
+                    className={`ml-auto px-4 py-2 text-[10px] font-sans font-bold uppercase tracking-widest border ${needsReviewOnly ? 'bg-[var(--rose-gold)] text-[var(--ivory)]' : 'border-black/5 text-zinc-500'}`}
+                >
+                    Needs Review
+                </button>
+                <button
+                    onClick={() => setRiskOnly((v) => !v)}
+                    className={`px-4 py-2 text-[10px] font-sans font-bold uppercase tracking-widest border ${riskOnly ? 'bg-red-500 text-[var(--ivory)]' : 'border-black/5 text-zinc-500'}`}
+                >
+                    Risk
+                </button>
+                <button
+                    onClick={() => {
+                        fetchThreads();
+                        fetchTiles();
+                    }}
+                    className="p-2 border border-black/5"
+                >
+                    <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+                </button>
+                <Link
+                    href="/inbox/receipts"
+                    className="ink-button-ghost px-4 py-2 text-[10px] font-sans font-bold uppercase tracking-widest"
+                >
+                    Receipts View
+                </Link>
+            </section>
+
+            <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_1.4fr] gap-8">
+                <div className="bg-white/40 border border-black/5 rounded-sm overflow-hidden">
+                    <div className="px-6 py-4 border-b border-black/5 flex items-center justify-between">
+                        <p className="text-[10px] font-sans font-bold uppercase tracking-widest text-zinc-400">Threads</p>
+                        <span className="text-[10px] font-sans text-zinc-400">{threads.length} items</span>
+                    </div>
+                    <div className="divide-y divide-black/5">
+                        {loading ? (
+                            <div className="p-10 text-center text-zinc-400 italic">Loading triage...</div>
+                        ) : threads.length === 0 ? (
+                            <div className="p-10 text-center text-zinc-400 italic">No threads in this lane.</div>
+                        ) : threads.map((thread) => (
+                            <button
+                                key={thread.thread_id}
+                                onClick={() => setSelectedThread(thread.thread_id)}
+                                className={`w-full text-left p-6 hover:bg-black/[0.02] transition-colors ${selectedThread === thread.thread_id ? 'bg-black/[0.03]' : ''}`}
+                            >
+                                <div className="flex items-center justify-between">
+                                    <p className="text-sm font-sans font-semibold truncate">{thread.from_name || thread.from_email}</p>
+                                    <p className="text-[10px] text-zinc-400">{new Date(thread.received_at).toLocaleDateString()}</p>
+                                </div>
+                                <p className="text-sm font-serif italic mt-1 truncate">{thread.subject}</p>
+                                <p className="text-[10px] text-zinc-400 line-clamp-2 mt-1">{thread.snippet}</p>
+                                <div className="flex items-center gap-3 mt-3 text-[9px] font-sans uppercase tracking-widest text-zinc-500">
+                                    <span className="px-2 py-1 border border-black/5">{thread.category.replace('_', ' ')}</span>
+                                    <span className="px-2 py-1 border border-black/5">{thread.lane}</span>
+                                    {thread.has_receipt && <span className="px-2 py-1 border border-black/5">receipt</span>}
+                                    {thread.needs_review && <span className="px-2 py-1 border border-black/5 text-amber-600">needs review</span>}
+                                    {thread.risk_level === 'high' && <span className="px-2 py-1 border border-black/5 text-red-600">risk</span>}
+                                </div>
+                                <p className="text-[10px] text-zinc-400 mt-2" title={(thread.evidence || []).join(' | ')}>
+                                    Routed because: {thread.reason || 'default classification'}
+                                </p>
+                            </button>
+                        ))}
                     </div>
                 </div>
-                <div className="flex-1 overflow-y-auto divide-y divide-black/5">
-                    {fetchError ? (
-                        <div className="p-12 text-center space-y-4">
-                            <p className="text-sm font-sans text-amber-700">{fetchError}</p>
-                            <button
-                                onClick={fetchEmails}
-                                className="ink-button text-[10px] font-sans font-bold uppercase tracking-widest px-6 py-2"
-                            >
-                                Retry loading
-                            </button>
-                        </div>
-                    ) : loading ? (
-                        <div className="p-12 text-center">
-                            <RefreshCw size={16} className="animate-spin mx-auto mb-3 text-zinc-400" />
-                            <p className="text-sm font-sans text-zinc-400 italic">Loading emails...</p>
-                        </div>
-                    ) : emails.length > 0 ? emails.map(email => (
-                        <div
-                            key={email.id}
-                            onClick={() => setSelectedEmail(email)}
-                            className={`p-6 cursor-pointer transition-colors hover:bg-black/[0.02] ${selectedEmail?.id === email.id ? 'bg-black/[0.01]' : ''}`}
-                        >
-                            <div className="flex justify-between items-start mb-1">
-                                <p className="text-sm font-sans font-bold lowercase truncate max-w-[180px]">{email.from}</p>
-                                <span className="text-[10px] text-zinc-400">{new Date(email.created_at).toLocaleDateString()}</span>
+
+                <div className="bg-white/40 border border-black/5 rounded-sm overflow-hidden">
+                    {!selected || !threadDetail ? (
+                        <div className="p-10 text-center text-zinc-400 italic">Select a thread to inspect.</div>
+                    ) : (
+                        <div className="flex flex-col h-full">
+                            <div className="p-6 border-b border-black/5">
+                                <div className="flex items-start justify-between gap-6">
+                                    <div>
+                                        <p className="text-xs font-sans uppercase tracking-widest text-zinc-400">Thread</p>
+                                        <h3 className="text-2xl font-serif italic mt-2">{selected.subject}</h3>
+                                        <p className="text-xs text-zinc-500 mt-2">From {selected.from_name || selected.from_email}</p>
+                                    </div>
+                                    <div className="space-y-2">
+                                        {(['now', 'next', 'waiting', 'info', 'noise'] as Lane[]).map((value) => (
+                                            <button
+                                                key={value}
+                                                onClick={() => handleLaneMove(selected.thread_id, value)}
+                                                className="w-full text-[10px] font-sans uppercase tracking-widest border border-black/5 px-3 py-1.5 hover:bg-black/5"
+                                            >
+                                                Move to {value}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-3 mt-4">
+                                    <button
+                                        onClick={() => handleNeedsReviewToggle(selected.thread_id, !selected.needs_review)}
+                                        className="text-[10px] font-sans uppercase tracking-widest border border-black/5 px-3 py-1.5"
+                                    >
+                                        {selected.needs_review ? 'Clear review' : 'Needs review'}
+                                    </button>
+                                    <span className="text-[10px] text-zinc-400">Rule: {selected.rule_id || 'heuristic'}</span>
+                                    <span className="text-[10px] text-zinc-400">Confidence: {(selected.confidence * 100).toFixed(0)}%</span>
+                                </div>
                             </div>
-                            <p className="text-xs font-serif italic text-zinc-600 truncate mb-1">{email.subject}</p>
-                            <p className="text-[10px] font-sans text-zinc-400 line-clamp-2 leading-relaxed">{email.content_preview}</p>
-                        </div>
-                    )) : (
-                        <div className="p-12 text-center">
-                            <div className="w-8 h-8 bg-[var(--ivory)] border border-black/5 rounded-full flex items-center justify-center mx-auto mb-3">
-                                <Mail size={16} className="text-zinc-300" />
+
+                            <div className="flex-1 overflow-y-auto divide-y divide-black/5">
+                                {threadDetail.messages?.map((message: any) => (
+                                    <div key={message.id} className="p-6">
+                                        <div className="flex items-center justify-between text-xs text-zinc-400">
+                                            <span>{message.from_name || message.from_email}</span>
+                                            <span>{new Date(message.received_at).toLocaleString()}</span>
+                                        </div>
+                                        <p className="text-sm font-sans mt-3 whitespace-pre-wrap">{message.body_text}</p>
+                                    </div>
+                                ))}
                             </div>
-                            <p className="text-xs font-sans text-zinc-400 italic">No messages yet</p>
+
+                            {threadDetail.receipts?.length > 0 && (
+                                <div className="border-t border-black/5 p-6 bg-white/60">
+                                    <p className="text-[10px] font-sans uppercase tracking-widest text-zinc-400 mb-3">Extracted Receipts</p>
+                                    {threadDetail.receipts.map((receipt: any) => (
+                                        <div key={receipt.id} className="flex items-center justify-between py-2 text-sm">
+                                            <div className="flex items-center gap-2">
+                                                <FileText size={14} />
+                                                <span>{receipt.vendor_name}</span>
+                                                <span className="text-zinc-400 text-xs">{receipt.date}</span>
+                                            </div>
+                                            <div className="flex items-center gap-4 text-xs">
+                                                <span>{receipt.currency} {receipt.amount}</span>
+                                                <span className="text-zinc-500 uppercase">{receipt.payment_status}</span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    <div className="text-right mt-4">
+                                        <Link href="/inbox/receipts" className="text-[10px] font-sans uppercase tracking-widest text-zinc-500 hover:text-[var(--ink)]">
+                                            View receipts <ChevronRight size={12} className="inline-block ml-1" />
+                                        </Link>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>
             </div>
-
-            {/* Message Detail */}
-            <div className="flex-1 flex flex-col bg-black/[0.005]">
-                {selectedEmail ? (
-                    <div className="flex flex-col h-full animate-in fade-in slide-in-from-right-4 duration-300">
-                        <header className="p-8 border-b border-black/5 flex justify-between items-center bg-white/20">
-                            <div>
-                                <h3 className="text-2xl font-serif mb-1 italic leading-tight">{selectedEmail.subject}</h3>
-                                <p className="text-xs font-sans text-zinc-500">From: <span className="text-[var(--ink)] font-medium lowercase italic">{selectedEmail.from}</span></p>
-                            </div>
-                            <div className="flex gap-4">
-                                <button
-                                    onClick={() => showToast('Reply feature coming soon', 'info')}
-                                    className="ink-button text-[10px] font-sans font-bold uppercase tracking-widest px-6 py-2"
-                                    disabled
-                                    title="Reply feature coming soon"
-                                >
-                                    Reply
-                                </button>
-                                <button
-                                    onClick={() => setShowDeleteConfirm(true)}
-                                    className="p-2 border border-black/5 hover:bg-red-50 transition-colors rounded-sm"
-                                    title="Delete email"
-                                >
-                                    <Trash2 size={16} />
-                                </button>
-                            </div>
-                        </header>
-                        <div className="flex-1 p-12 overflow-y-auto">
-                            <div className="max-w-2xl mx-auto bg-white p-12 shadow-sm border border-black/5 font-serif text-lg leading-relaxed text-zinc-800 whitespace-pre-wrap">
-                                {selectedEmail.body || selectedEmail.content_preview}
-                            </div>
-                        </div>
-                    </div>
-                ) : (
-                    <div className="flex-1 flex flex-col items-center justify-center">
-                        <div className="text-center space-y-4">
-                            <div className="w-16 h-16 bg-[var(--ivory)] border border-black/5 rounded-full flex items-center justify-center mx-auto mb-6">
-                                <Mail size={32} className="text-zinc-200" />
-                            </div>
-                            <h3 className="text-2xl font-serif italic">Your communications surface here.</h3>
-                            <p className="text-sm font-sans text-zinc-400 max-w-xs mx-auto italic">Select a message from the column on the left to review its contents and respond.</p>
-                        </div>
-                    </div>
-                )}
-            </div>
-
-            {/* Delete Confirmation Dialog */}
-            {showDeleteConfirm && (
-                <div className="absolute inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50">
-                    <div className="bg-white p-8 rounded-sm shadow-lg max-w-sm animate-in fade-in scale-in duration-200">
-                        <h3 className="text-xl font-serif mb-3">Delete email?</h3>
-                        <p className="text-sm font-sans text-zinc-600 mb-6">This action cannot be undone. The email will be permanently deleted.</p>
-                        <div className="flex gap-3">
-                            <button
-                                onClick={handleConfirmDelete}
-                                className="flex-1 bg-red-600 text-white px-4 py-2 text-xs font-sans font-bold uppercase tracking-widest hover:bg-red-700 transition-colors rounded-sm"
-                            >
-                                Delete
-                            </button>
-                            <button
-                                onClick={() => setShowDeleteConfirm(false)}
-                                className="flex-1 border border-black/5 px-4 py-2 text-xs font-sans font-bold uppercase tracking-widest hover:bg-black/5 transition-colors rounded-sm"
-                            >
-                                Cancel
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 }

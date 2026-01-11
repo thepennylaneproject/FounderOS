@@ -1,0 +1,79 @@
+name: inbox-tests
+
+on:
+  push:
+    paths:
+      - "src/inbox/**"
+      - "src/app/**"
+      - "scripts/**"
+      - "database/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/inbox-tests.yml"
+  pull_request:
+    paths:
+      - "src/inbox/**"
+      - "src/app/**"
+      - "scripts/**"
+      - "database/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/inbox-tests.yml"
+
+jobs:
+  inbox:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: founderos
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d founderos"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+      - name: Install deps
+        run: npm ci
+      - name: Wait for Postgres
+        run: |
+          for i in {1..30}; do
+            pg_isready -h localhost -U postgres -d founderos && break
+            sleep 1
+          done
+      - name: Apply schema
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h localhost -U postgres -d founderos -f database/init.sql
+      - name: Start app
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/founderos
+        run: |
+          npm run dev -- --hostname 0.0.0.0 --port 3000 &
+          for i in {1..30}; do
+            curl -sf http://localhost:3000/api/test-db && break
+            sleep 1
+          done
+      - name: Seed inbox
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/founderos
+        run: |
+          node scripts/seed-inbox.js
+          curl -s -X POST http://localhost:3000/api/inbox/reclassify >/dev/null
+      - name: Run inbox tests
+        env:
+          API_BASE: http://localhost:3000
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/founderos
+        run: npm run test:inbox

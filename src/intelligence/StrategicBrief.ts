@@ -16,6 +16,7 @@ export interface StrategicBriefData {
 
 export interface SuggestedAction {
     type: 'follow_up' | 'rescue' | 'close';
+    contactId: string;
     contactName: string;
     contactEmail: string;
     reason: string;
@@ -33,13 +34,13 @@ export async function generateStrategicBrief(): Promise<StrategicBriefData> {
 
     // Check domain health
     const domainResult = await pool.query(`
-        SELECT domain, spf_record, dmarc_policy, dkim_key 
+        SELECT name, spf_record, dmarc_policy, dkim_key 
         FROM domains 
         WHERE spf_record IS NULL OR dmarc_policy IS NULL OR dkim_key IS NULL
     `);
 
-    const infrastructureAlerts: InfraAlert[] = domainResult.rows.map((d: { domain: string; spf_record: string | null; dmarc_policy: string | null; dkim_key: string | null }) => ({
-        domain: d.domain,
+    const infrastructureAlerts: InfraAlert[] = domainResult.rows.map((d: { name: string; spf_record: string | null; dmarc_policy: string | null; dkim_key: string | null }) => ({
+        domain: d.name,
         issue: !d.spf_record ? 'Missing SPF record' :
             !d.dmarc_policy ? 'Missing DMARC policy' :
                 'Missing DKIM key',
@@ -52,6 +53,7 @@ export async function generateStrategicBrief(): Promise<StrategicBriefData> {
     for (const hot of insights.hotLeads.slice(0, 3)) {
         suggestedActions.push({
             type: 'follow_up',
+            contactId: hot.contactId,
             contactName: `${hot.firstName} ${hot.lastName}`,
             contactEmail: hot.email,
             reason: hot.closerSignal || `${hot.recentOpens} opens in the last 7 days`,
@@ -62,6 +64,7 @@ export async function generateStrategicBrief(): Promise<StrategicBriefData> {
     for (const slipping of insights.slippingTargets.slice(0, 2)) {
         suggestedActions.push({
             type: 'rescue',
+            contactId: slipping.contactId,
             contactName: `${slipping.firstName} ${slipping.lastName}`,
             contactEmail: slipping.email,
             reason: `Health score dropped to ${slipping.healthScore}%`,
@@ -72,6 +75,7 @@ export async function generateStrategicBrief(): Promise<StrategicBriefData> {
     for (const closer of insights.closerOpportunities.filter(c => c.healthScore > 70).slice(0, 2)) {
         suggestedActions.push({
             type: 'close',
+            contactId: closer.contactId,
             contactName: `${closer.firstName} ${closer.lastName}`,
             contactEmail: closer.email,
             reason: closer.closerSignal || 'Ready for closing conversation',

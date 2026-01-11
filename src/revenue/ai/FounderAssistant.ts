@@ -42,9 +42,12 @@ export class AIFounderAssistant {
         if (intent === 'outreach') {
             subject = `Quick question regarding ${contact.company_name}`;
             body = `Hi ${contact.first_name},\n\nI've been following ${contact.company_name}'s work in the ${contact.industry} space. Given your current stage as a ${contact.stage}, I thought you might find our founder tools helpful for scaling your email infrastructure.\n\nBest,\nFounderOS AI`;
-        } else if (intent === 'follow-up') {
+        } else if (intent === 'follow-up' || intent === 'followup') {
             subject = `Following up: Next steps for ${contact.company_name}`;
             body = `Hi ${contact.first_name},\n\nJust wanted to circle back on our previous conversation. I noticed your health score is currently at ${contact.health_score}, which is great. How can we help you reach that next milestone?\n\nBest,\nFounderOS AI`;
+        } else if (intent === 'closing') {
+            subject = `Ready to finalize next steps with ${contact.company_name}`;
+            body = `Hi ${contact.first_name},\n\nBased on your recent engagement, it feels like we're aligned on goals. If it helps, I'm happy to propose a quick walkthrough and finalize a plan this week.\n\nBest,\nFounderOS AI`;
         } else {
             subject = `FounderOS Update`;
             body = `Hello ${contact.first_name},\n\nThis is an AI-generated message regarding your account settings.`;

@@ -24,7 +24,7 @@ export class WorkflowAutomation {
             `INSERT INTO workflows (name, trigger_type, config, status)
              VALUES ($1, $2, $3, $4)
              RETURNING id`,
-            [config.name, config.trigger, JSON.stringify(config.actions), config.status || 'active']
+            [config.name, config.trigger, config.actions, config.status || 'active']
         );
         return res.rows[0].id;
     }
@@ -49,7 +49,9 @@ export class WorkflowAutomation {
 
         for (const wf of workflows) {
             console.log(`Executing workflow: ${wf.name}`);
-            const actions = wf.config as WorkflowAction[];
+            const actions = typeof wf.config === 'string'
+                ? JSON.parse(wf.config)
+                : (wf.config as WorkflowAction[]);
 
             let executionResult: 'success' | 'failed' | 'partial' = 'success';
             let actionErrors: string[] = [];

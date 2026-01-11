@@ -17,7 +17,7 @@ export interface DomainDeliverability {
 export async function calculateDeliverability(domain?: string): Promise<DomainDeliverability[]> {
     const domainsQuery = `
         SELECT 
-            d.domain,
+            d.name,
             d.spf_record,
             d.dkim_key,
             d.dmarc_policy,
@@ -26,15 +26,15 @@ export async function calculateDeliverability(domain?: string): Promise<DomainDe
             COUNT(DISTINCT el.id) FILTER (WHERE el.status = 'bounced' AND el.created_at > NOW() - INTERVAL '30 days') as monthly_bounces,
             COUNT(DISTINCT el.id) FILTER (WHERE el.created_at > NOW() - INTERVAL '30 days') as monthly_sends
         FROM domains d
-        LEFT JOIN email_logs el ON el.sender LIKE '%@' || d.domain
-        ${domain ? 'WHERE d.domain = $1' : ''}
-        GROUP BY d.domain, d.spf_record, d.dkim_key, d.dmarc_policy, d.daily_limit
+        LEFT JOIN email_logs el ON el.sender LIKE '%@' || d.name
+        ${domain ? 'WHERE d.name = $1' : ''}
+        GROUP BY d.name, d.spf_record, d.dkim_key, d.dmarc_policy, d.daily_limit
     `;
 
     const result = await pool.query(domainsQuery, domain ? [domain] : []);
 
     return result.rows.map((row: {
-        domain: string;
+        name: string;
         spf_record: string | null;
         dkim_key: string | null;
         dmarc_policy: string | null;
@@ -92,7 +92,7 @@ export async function calculateDeliverability(domain?: string): Promise<DomainDe
         }
 
         return {
-            domain: row.domain,
+            domain: row.name,
             hasSPF,
             hasDKIM,
             hasDMARC,
