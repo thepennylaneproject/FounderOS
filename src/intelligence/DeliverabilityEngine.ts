@@ -1,6 +1,6 @@
 'use server';
 
-import pool from '@/lib/db';
+import supabase from '@/lib/supabase';
 
 export interface DomainDeliverability {
     domain: string;
@@ -15,43 +15,46 @@ export interface DomainDeliverability {
 }
 
 export async function calculateDeliverability(domain?: string): Promise<DomainDeliverability[]> {
-    const domainsQuery = `
-        SELECT 
-            d.name,
-            d.spf_record,
-            d.dkim_key,
-            d.dmarc_policy,
-            d.daily_limit,
-            COUNT(DISTINCT el.id) FILTER (WHERE el.created_at > NOW() - INTERVAL '7 days') as weekly_sends,
-            COUNT(DISTINCT el.id) FILTER (WHERE el.status = 'bounced' AND el.created_at > NOW() - INTERVAL '30 days') as monthly_bounces,
-            COUNT(DISTINCT el.id) FILTER (WHERE el.created_at > NOW() - INTERVAL '30 days') as monthly_sends
-        FROM domains d
-        LEFT JOIN email_logs el ON el.sender LIKE '%@' || d.name
-        ${domain ? 'WHERE d.name = $1' : ''}
-        GROUP BY d.name, d.spf_record, d.dkim_key, d.dmarc_policy, d.daily_limit
-    `;
+    // Get domains
+    let domainsQuery = supabase.from('domains').select('*');
+    if (domain) {
+        domainsQuery = domainsQuery.eq('name', domain);
+    }
+    
+    const { data: domains, error: domainsError } = await domainsQuery;
+    if (domainsError) throw domainsError;
 
-    const result = await pool.query(domainsQuery, domain ? [domain] : []);
+    // Get email logs from last 30 days
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-    return result.rows.map((row: {
-        name: string;
-        spf_record: string | null;
-        dkim_key: string | null;
-        dmarc_policy: string | null;
-        daily_limit: number;
-        weekly_sends: number;
-        monthly_bounces: number;
-        monthly_sends: number;
-    }) => {
+    const { data: emailLogs, error: logsError } = await supabase
+        .from('email_logs')
+        .select('sender, status, created_at')
+        .gte('created_at', thirtyDaysAgo.toISOString());
+
+    if (logsError) throw logsError;
+
+    const logs = emailLogs || [];
+
+    return (domains || []).map((row) => {
         const hasSPF = !!row.spf_record;
         const hasDKIM = !!row.dkim_key;
         const hasDMARC = !!row.dmarc_policy;
 
-        const bounceRate = row.monthly_sends > 0
-            ? (row.monthly_bounces / row.monthly_sends) * 100
+        // Filter logs for this domain
+        const domainLogs = logs.filter(l => l.sender?.endsWith(`@${row.name}`));
+        const weeklyLogs = domainLogs.filter(l => new Date(l.created_at) >= sevenDaysAgo);
+        const monthlyBounces = domainLogs.filter(l => l.status === 'bounced').length;
+
+        const bounceRate = domainLogs.length > 0
+            ? (monthlyBounces / domainLogs.length) * 100
             : 0;
 
-        const sendingVelocity = row.weekly_sends;
+        const sendingVelocity = weeklyLogs.length;
 
         // Calculate inbox placement probability
         let score = 100;

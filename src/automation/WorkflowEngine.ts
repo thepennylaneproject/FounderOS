@@ -1,4 +1,4 @@
-import { query } from '@/lib/db';
+import supabase from '@/lib/supabase';
 import { emailClient } from '@/lib/email';
 import { modernCRM } from '@/crm/CustomerRelationshipEngine';
 import { eventLoggingEngine } from '@/intelligence/EventLoggingEngine';
@@ -18,31 +18,43 @@ export interface WorkflowConfig {
 }
 
 export class WorkflowAutomation {
-    // Management
     async createWorkflow(config: WorkflowConfig): Promise<string> {
-        const res = await query(
-            `INSERT INTO workflows (name, trigger_type, config, status)
-             VALUES ($1, $2, $3, $4)
-             RETURNING id`,
-            [config.name, config.trigger, config.actions, config.status || 'active']
-        );
-        return res.rows[0].id;
+        const { data, error } = await supabase
+            .from('workflows')
+            .insert({
+                name: config.name,
+                trigger_type: config.trigger,
+                config: config.actions,
+                status: config.status || 'active'
+            })
+            .select('id')
+            .single();
+        
+        if (error) throw error;
+        return data.id;
     }
 
     async getWorkflowsByTrigger(trigger: string) {
-        const res = await query(
-            'SELECT * FROM workflows WHERE trigger_type = $1 AND status = $2',
-            [trigger, 'active']
-        );
-        return res.rows;
+        const { data, error } = await supabase
+            .from('workflows')
+            .select('*')
+            .eq('trigger_type', trigger)
+            .eq('status', 'active');
+        
+        if (error) throw error;
+        return data || [];
     }
 
     async getAllWorkflows() {
-        const res = await query('SELECT * FROM workflows ORDER BY created_at DESC');
-        return res.rows;
+        const { data, error } = await supabase
+            .from('workflows')
+            .select('*')
+            .order('created_at', { ascending: false });
+        
+        if (error) throw error;
+        return data || [];
     }
 
-    // Execution Engine
     async trigger(event: string, context: { contactId?: string, data?: any }) {
         console.log(`Triggering workflows for event: ${event}`);
         const workflows = await this.getWorkflowsByTrigger(event);
@@ -68,10 +80,8 @@ export class WorkflowAutomation {
                 }
             }
 
-            // Log workflow execution to event system
             if (totalActions > 0) {
                 try {
-                    // Determine primary action type from first action
                     const primaryAction = actions[0]?.action || 'unknown';
 
                     await eventLoggingEngine.logWorkflowExecution(

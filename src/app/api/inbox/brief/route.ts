@@ -1,39 +1,49 @@
 import { NextResponse } from 'next/server';
-import { query } from '@/lib/db';
+import supabase from '@/lib/supabase';
 
 export async function GET() {
     try {
-        const countsRes = await query(
-            `
-            SELECT
-                COUNT(*) FILTER (WHERE lane = 'now') as now_count,
-                COUNT(*) FILTER (WHERE lane = 'waiting') as waiting_count,
-                COUNT(*) FILTER (WHERE category = 'needs_reply') as needs_reply_count,
-                COUNT(*) FILTER (WHERE needs_review = true) as needs_review_count,
-                COUNT(*) FILTER (WHERE risk_level = 'high') as risk_count
-            FROM thread_states
-        `
-        );
+        // Get thread state counts
+        const { data: threadStats, error: threadError } = await supabase
+            .from('thread_states')
+            .select('lane, category, needs_review, risk_level');
 
-        const receiptCounts = await query(
-            `
-            SELECT
-                COUNT(*) FILTER (WHERE date >= date_trunc('month', CURRENT_DATE)) as month_receipts,
-                COALESCE(SUM(amount) FILTER (WHERE date >= date_trunc('month', CURRENT_DATE)), 0) as month_total
-            FROM receipts
-        `
-        );
+        if (threadError) throw threadError;
+
+        const threads = threadStats || [];
+        
+        const now_count = threads.filter(t => t.lane === 'now').length;
+        const waiting_count = threads.filter(t => t.lane === 'waiting').length;
+        const needs_reply_count = threads.filter(t => t.category === 'needs_reply').length;
+        const needs_review_count = threads.filter(t => t.needs_review === true).length;
+        const risk_count = threads.filter(t => t.risk_level === 'high').length;
+
+        // Get receipt counts for current month
+        const startOfMonth = new Date();
+        startOfMonth.setDate(1);
+        startOfMonth.setHours(0, 0, 0, 0);
+
+        const { data: receipts, error: receiptError } = await supabase
+            .from('receipts')
+            .select('amount')
+            .gte('date', startOfMonth.toISOString().split('T')[0]);
+
+        if (receiptError) throw receiptError;
+
+        const monthReceipts = receipts || [];
+        const month_total = monthReceipts.reduce((sum, r) => sum + (parseFloat(r.amount) || 0), 0);
 
         return NextResponse.json({
-            now_count: Number(countsRes.rows[0]?.now_count || 0),
-            waiting_count: Number(countsRes.rows[0]?.waiting_count || 0),
-            needs_reply_count: Number(countsRes.rows[0]?.needs_reply_count || 0),
-            needs_review_count: Number(countsRes.rows[0]?.needs_review_count || 0),
-            new_receipts_count: Number(receiptCounts.rows[0]?.month_receipts || 0),
-            month_total: Number(receiptCounts.rows[0]?.month_total || 0),
-            risk_count: Number(countsRes.rows[0]?.risk_count || 0)
+            now_count,
+            waiting_count,
+            needs_reply_count,
+            needs_review_count,
+            new_receipts_count: monthReceipts.length,
+            month_total,
+            risk_count
         });
     } catch (error: any) {
+        console.error('Error fetching inbox brief:', error);
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }

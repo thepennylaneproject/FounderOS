@@ -1,4 +1,4 @@
-import { query } from '@/lib/db';
+import supabase from '@/lib/supabase';
 import * as dns from 'dns/promises';
 
 export interface DomainHealth {
@@ -19,32 +19,43 @@ export interface DomainConfig {
 
 export class DomainManager {
     async addDomain(config: DomainConfig): Promise<void> {
-        // Persist to DB
-        await query(
-            `INSERT INTO domains (name, dkim_key, spf_record, dmarc_policy, daily_limit, status)
-             VALUES ($1, $2, $3, $4, $5, $6)
-             ON CONFLICT (name) DO UPDATE SET
-             dkim_key = EXCLUDED.dkim_key,
-             spf_record = EXCLUDED.spf_record,
-             dmarc_policy = EXCLUDED.dmarc_policy,
-             daily_limit = EXCLUDED.daily_limit,
-             status = EXCLUDED.status,
-             updated_at = CURRENT_TIMESTAMP`,
-            [config.domain, config.dkimKey, config.spfRecord, config.dmarcPolicy, config.dailyLimit || 50, 'active']
-        );
+        const { error } = await supabase
+            .from('domains')
+            .upsert({
+                name: config.domain,
+                dkim_key: config.dkimKey,
+                spf_record: config.spfRecord,
+                dmarc_policy: config.dmarcPolicy,
+                daily_limit: config.dailyLimit || 50,
+                status: 'active',
+                updated_at: new Date().toISOString()
+            }, { 
+                onConflict: 'name' 
+            });
 
-        // In a real scenario, we would trigger mailserver config here
+        if (error) throw error;
         console.log(`Domain ${config.domain} configured.`);
     }
 
     async getDomain(domain: string) {
-        const res = await query('SELECT * FROM domains WHERE name = $1', [domain]);
-        return res.rows[0];
+        const { data, error } = await supabase
+            .from('domains')
+            .select('*')
+            .eq('name', domain)
+            .single();
+        
+        if (error && error.code !== 'PGRST116') throw error;
+        return data;
     }
 
     async getAllDomains() {
-        const res = await query('SELECT * FROM domains ORDER BY created_at DESC');
-        return res.rows;
+        const { data, error } = await supabase
+            .from('domains')
+            .select('*')
+            .order('created_at', { ascending: false });
+        
+        if (error) throw error;
+        return data || [];
     }
 
     async validateDomain(domain: string): Promise<DomainHealth> {
@@ -55,18 +66,21 @@ export class DomainManager {
 
         const health = {
             spf,
-            dkim: false, // Placeholder for more complex DKIM check
+            dkim: false,
             dmarc,
             blacklists: [],
             reputation: 100
         };
 
-        // Update health in DB
-        await query(
-            'UPDATE domains SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE name = $2',
-            [health.spf && health.dmarc ? 'validated' : 'pending_dns', domain]
-        );
+        const { error } = await supabase
+            .from('domains')
+            .update({ 
+                status: health.spf && health.dmarc ? 'validated' : 'pending_dns',
+                updated_at: new Date().toISOString()
+            })
+            .eq('name', domain);
 
+        if (error) throw error;
         return health;
     }
 

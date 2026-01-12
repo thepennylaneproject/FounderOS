@@ -1,4 +1,4 @@
-import { query } from '@/lib/db';
+import supabase from '@/lib/supabase';
 import { workflowAutomation } from '@/automation/WorkflowEngine';
 
 export interface Company { name: string; size: string; industry: string; employees: number; revenue: number; funding: string; }
@@ -6,19 +6,21 @@ export interface Contact { id: string; email: string; first_name?: string; last_
 export interface LeadScore { score: number; reasoning: string; nextBestAction: string; }
 
 export class ModernCRM {
-    // Intelligent Lead Scoring
     async scoreLead(contactId: string): Promise<LeadScore> {
-        // Query engagement signals from logs
-        const logs = await query(
-            `SELECT status, count(*) FROM email_logs WHERE contact_id = $1 GROUP BY status`,
-            [contactId]
-        );
+        const { data: logs, error } = await supabase
+            .from('email_logs')
+            .select('status')
+            .eq('contact_id', contactId);
 
-        let score = 50; // Base score
+        if (error) throw error;
+
+        let score = 50;
         let reasoning = "Baseline engagement.";
 
         const stats: Record<string, number> = {};
-        logs.rows.forEach(r => stats[r.status] = parseInt(r.count));
+        (logs || []).forEach(r => {
+            stats[r.status] = (stats[r.status] || 0) + 1;
+        });
 
         if (stats['opened']) score += 10 * stats['opened'];
         if (stats['clicked']) score += 20 * stats['clicked'];
@@ -29,8 +31,10 @@ export class ModernCRM {
         if (score > 80) reasoning = "High engagement detected across multiple channels.";
         else if (score < 30) reasoning = "Low response rate; needs re-engagement.";
 
-        // Update DB
-        await query('UPDATE contacts SET health_score = $1 WHERE id = $2', [score, contactId]);
+        await supabase
+            .from('contacts')
+            .update({ health_score: score })
+            .eq('id', contactId);
 
         return {
             score,
@@ -39,58 +43,73 @@ export class ModernCRM {
         };
     }
 
-    // Automated Enrichment (Mock)
     async enrichContact(id: string): Promise<void> {
-        const res = await query('SELECT email FROM contacts WHERE id = $1', [id]);
-        const email = res.rows[0]?.email;
-        if (!email) return;
+        const { data, error } = await supabase
+            .from('contacts')
+            .select('email')
+            .eq('id', id)
+            .single();
 
-        // In a real app, call Clearbit/Apollo here
+        if (error || !data?.email) return;
+
         const mockEnrichment = {
-            company_name: email.split('@')[1].split('.')[0].toUpperCase(),
+            company_name: data.email.split('@')[1].split('.')[0].toUpperCase(),
             industry: 'Technology',
             tags: ['enriched']
         };
 
-        await query(
-            `UPDATE contacts SET company_name = $1, industry = $2, tags = $3, updated_at = CURRENT_TIMESTAMP WHERE id = $4`,
-            [mockEnrichment.company_name, mockEnrichment.industry, mockEnrichment.tags, id]
-        );
+        await supabase
+            .from('contacts')
+            .update({
+                company_name: mockEnrichment.company_name,
+                industry: mockEnrichment.industry,
+                tags: mockEnrichment.tags,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', id);
     }
 
-    // ... CRUD ...
-
-    // CRUD
     async createContact(contact: Partial<Contact>): Promise<string> {
-        const res = await query(
-            `INSERT INTO contacts (email, first_name, last_name, company_name, stage)
-             VALUES ($1, $2, $3, $4, $5)
-             ON CONFLICT (email) DO UPDATE SET
-             first_name = EXCLUDED.first_name,
-             last_name = EXCLUDED.last_name,
-             company_name = EXCLUDED.company_name,
-             stage = EXCLUDED.stage,
-             updated_at = CURRENT_TIMESTAMP
-             RETURNING id`,
-            [contact.email, contact.first_name, contact.last_name, contact.company_name, contact.stage || 'lead']
-        );
-        const id = res.rows[0].id;
+        const { data, error } = await supabase
+            .from('contacts')
+            .upsert({
+                email: contact.email,
+                first_name: contact.first_name,
+                last_name: contact.last_name,
+                company_name: contact.company_name,
+                stage: contact.stage || 'lead',
+                updated_at: new Date().toISOString()
+            }, { onConflict: 'email' })
+            .select('id')
+            .single();
 
-        // Automated Workflow Trigger
+        if (error) throw error;
+        const id = data.id;
+
         await workflowAutomation.trigger('contact.created', { contactId: id });
-
-        await this.enrichContact(id); // Auto-enrich
+        await this.enrichContact(id);
         return id;
     }
 
     async getContact(id: string): Promise<Contact> {
-        const res = await query('SELECT * FROM contacts WHERE id = $1', [id]);
-        return res.rows[0];
+        const { data, error } = await supabase
+            .from('contacts')
+            .select('*')
+            .eq('id', id)
+            .single();
+
+        if (error) throw error;
+        return data;
     }
 
     async getAllContacts() {
-        const res = await query('SELECT * FROM contacts ORDER BY created_at DESC');
-        return res.rows;
+        const { data, error } = await supabase
+            .from('contacts')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        return data || [];
     }
 }
 

@@ -1,6 +1,6 @@
 'use server';
 
-import pool from '@/lib/db';
+import supabase from '@/lib/supabase';
 import { getMomentumInsights, MomentumInsight } from './MomentumEngine';
 
 export interface StrategicBriefData {
@@ -32,20 +32,22 @@ export interface InfraAlert {
 export async function generateStrategicBrief(): Promise<StrategicBriefData> {
     const insights = await getMomentumInsights();
 
-    // Check domain health
-    const domainResult = await pool.query(`
-        SELECT name, spf_record, dmarc_policy, dkim_key 
-        FROM domains 
-        WHERE spf_record IS NULL OR dmarc_policy IS NULL OR dkim_key IS NULL
-    `);
+    // Check domain health - find domains missing required records
+    const { data: domains, error: domainsError } = await supabase
+        .from('domains')
+        .select('name, spf_record, dmarc_policy, dkim_key');
 
-    const infrastructureAlerts: InfraAlert[] = domainResult.rows.map((d: { name: string; spf_record: string | null; dmarc_policy: string | null; dkim_key: string | null }) => ({
-        domain: d.name,
-        issue: !d.spf_record ? 'Missing SPF record' :
-            !d.dmarc_policy ? 'Missing DMARC policy' :
-                'Missing DKIM key',
-        severity: 'warning' as const
-    }));
+    if (domainsError) throw domainsError;
+
+    const infrastructureAlerts: InfraAlert[] = (domains || [])
+        .filter(d => !d.spf_record || !d.dmarc_policy || !d.dkim_key)
+        .map(d => ({
+            domain: d.name,
+            issue: !d.spf_record ? 'Missing SPF record' :
+                !d.dmarc_policy ? 'Missing DMARC policy' :
+                    'Missing DKIM key',
+            severity: 'warning' as const
+        }));
 
     // Generate suggested actions
     const suggestedActions: SuggestedAction[] = [];

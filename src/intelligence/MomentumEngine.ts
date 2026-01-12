@@ -1,6 +1,6 @@
 'use server';
 
-import pool from '@/lib/db';
+import supabase from '@/lib/supabase';
 
 export interface ContactMomentum {
     contactId: string;
@@ -28,80 +28,97 @@ const SLIPPING_THRESHOLD = 30;
 const CLOSER_KEYWORDS = ['pricing', 'proposal', 'demo', 'contract', 'quote'];
 
 export async function calculateMomentum(contactId?: string): Promise<ContactMomentum[]> {
-    const query = `
-        WITH engagement AS (
-            SELECT 
-                c.id as contact_id,
-                c.email,
-                c.first_name,
-                c.last_name,
-                c.company_name,
-                c.health_score,
-                COUNT(CASE WHEN el.opened_at IS NOT NULL AND el.opened_at > NOW() - INTERVAL '7 days' THEN 1 END) as recent_opens,
-                COUNT(CASE WHEN el.clicked_at IS NOT NULL AND el.clicked_at > NOW() - INTERVAL '7 days' THEN 1 END) as recent_clicks,
-                COALESCE(EXTRACT(DAY FROM NOW() - MAX(COALESCE(el.opened_at, el.clicked_at, el.created_at))), 30) as days_since_last,
-                STRING_AGG(DISTINCT 
-                    CASE WHEN el.opened_at IS NOT NULL AND el.opened_at > NOW() - INTERVAL '3 days' 
-                    THEN LOWER(cam.name) END, ', '
-                ) as recent_campaign_names
-            FROM contacts c
-            LEFT JOIN email_logs el ON c.id = el.contact_id
-            LEFT JOIN campaigns cam ON el.campaign_id = cam.id
-            ${contactId ? 'WHERE c.id = $1' : ''}
-            GROUP BY c.id, c.email, c.first_name, c.last_name, c.company_name, c.health_score
-        )
-        SELECT 
-            contact_id,
-            email,
-            first_name,
-            last_name,
-            company_name,
-            health_score,
-            recent_opens,
-            recent_clicks,
-            days_since_last,
-            recent_campaign_names,
-            CASE 
-                WHEN days_since_last = 0 THEN (recent_opens * 2 + recent_clicks * 5)
-                ELSE (recent_opens * 2 + recent_clicks * 5)::float / days_since_last
-            END as momentum_score
-        FROM engagement
-        ORDER BY momentum_score DESC
-    `;
+    // Get contacts
+    let contactsQuery = supabase.from('contacts').select('*');
+    if (contactId) {
+        contactsQuery = contactsQuery.eq('id', contactId);
+    }
+    const { data: contacts, error: contactsError } = await contactsQuery;
+    if (contactsError) throw contactsError;
 
-    const result = await pool.query(query, contactId ? [contactId] : []);
+    // Get email logs from last 7 days
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-    return result.rows.map(row => {
+    const { data: emailLogs, error: logsError } = await supabase
+        .from('email_logs')
+        .select('contact_id, campaign_id, opened_at, clicked_at, created_at');
+
+    if (logsError) throw logsError;
+
+    // Get campaigns for closer signal detection
+    const { data: campaigns, error: campaignsError } = await supabase
+        .from('campaigns')
+        .select('id, name');
+
+    if (campaignsError) throw campaignsError;
+
+    const campaignMap = new Map((campaigns || []).map(c => [c.id, c.name]));
+
+    return (contacts || []).map(contact => {
+        const contactLogs = (emailLogs || []).filter(l => l.contact_id === contact.id);
+        
+        const recentOpens = contactLogs.filter(l => 
+            l.opened_at && new Date(l.opened_at) >= sevenDaysAgo
+        ).length;
+
+        const recentClicks = contactLogs.filter(l => 
+            l.clicked_at && new Date(l.clicked_at) >= sevenDaysAgo
+        ).length;
+
+        // Calculate days since last contact
+        const lastActivity = contactLogs.reduce((latest, log) => {
+            const date = log.opened_at || log.clicked_at || log.created_at;
+            if (!date) return latest;
+            const logDate = new Date(date);
+            return logDate > latest ? logDate : latest;
+        }, new Date(0));
+        
+        const daysSinceLastContact = lastActivity.getTime() === 0 
+            ? 30 
+            : Math.floor((Date.now() - lastActivity.getTime()) / (1000 * 60 * 60 * 24));
+
+        // Calculate momentum score
+        const momentumScore = daysSinceLastContact === 0 
+            ? (recentOpens * 2 + recentClicks * 5)
+            : (recentOpens * 2 + recentClicks * 5) / daysSinceLastContact;
+
+        // Check for closer signals
         let closerSignal: string | null = null;
+        const threeDaysAgo = new Date();
+        threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
 
-        if (row.recent_campaign_names) {
-            for (const keyword of CLOSER_KEYWORDS) {
-                if (row.recent_campaign_names.includes(keyword)) {
-                    closerSignal = `Engaged with ${keyword} content`;
-                    break;
-                }
+        const recentCampaignNames = contactLogs
+            .filter(l => l.opened_at && new Date(l.opened_at) >= threeDaysAgo)
+            .map(l => campaignMap.get(l.campaign_id)?.toLowerCase() || '')
+            .filter(Boolean);
+
+        for (const keyword of CLOSER_KEYWORDS) {
+            if (recentCampaignNames.some(name => name.includes(keyword))) {
+                closerSignal = `Engaged with ${keyword} content`;
+                break;
             }
         }
 
-        if (row.health_score > 70 && row.recent_opens >= 2) {
+        if ((contact.health_score || 0) > 70 && recentOpens >= 2) {
             closerSignal = closerSignal || 'High engagement pattern detected';
         }
 
         return {
-            contactId: row.contact_id,
-            email: row.email,
-            firstName: row.first_name,
-            lastName: row.last_name,
-            companyName: row.company_name,
-            healthScore: row.health_score || 50,
-            momentumScore: Math.round(row.momentum_score * 10) / 10,
-            recentOpens: row.recent_opens || 0,
-            recentClicks: row.recent_clicks || 0,
-            daysSinceLastContact: Math.round(row.days_since_last),
-            isHotLead: row.momentum_score >= HOT_LEAD_THRESHOLD,
+            contactId: contact.id,
+            email: contact.email,
+            firstName: contact.first_name || '',
+            lastName: contact.last_name || '',
+            companyName: contact.company_name || '',
+            healthScore: contact.health_score || 50,
+            momentumScore: Math.round(momentumScore * 10) / 10,
+            recentOpens,
+            recentClicks,
+            daysSinceLastContact,
+            isHotLead: momentumScore >= HOT_LEAD_THRESHOLD,
             closerSignal
         };
-    });
+    }).sort((a, b) => b.momentumScore - a.momentumScore);
 }
 
 export async function getMomentumInsights(): Promise<MomentumInsight> {
