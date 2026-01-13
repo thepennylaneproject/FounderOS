@@ -83,7 +83,7 @@ export const query = async (text: string, params?: any[]): Promise<QueryResult> 
             if (error.code === 'PGRST202') {
                 console.error('exec_sql RPC not found. Please create it in Supabase SQL Editor:');
                 console.error(`
-CREATE OR REPLACE FUNCTION exec_sql(sql_query TEXT, sql_params JSONB DEFAULT '[]'::JSONB)
+CREATE OR REPLACE FUNCTION exec_sql(sql_query TEXT)
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -92,8 +92,13 @@ AS $$
 DECLARE
     result JSONB;
 BEGIN
-    EXECUTE sql_query INTO result;
+    -- This handles queries that return rows by aggregating them into JSON
+    EXECUTE 'SELECT jsonb_agg(t) FROM (' || sql_query || ') t' INTO result;
     RETURN COALESCE(result, '[]'::JSONB);
+EXCEPTION WHEN OTHERS THEN
+    -- Fallback for non-SELECT queries (INSERT/UPDATE)
+    EXECUTE sql_query;
+    RETURN '[]'::JSONB;
 END;
 $$;
                 `);

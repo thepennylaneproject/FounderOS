@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+export const dynamic = 'force-dynamic';
 import { emailClient } from '@/lib/email';
 
 export async function GET() {

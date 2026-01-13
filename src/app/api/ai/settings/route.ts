@@ -5,14 +5,12 @@
  */
 
 import { NextResponse } from 'next/server';
-import { query } from '@/lib/db';
+import supabase from '@/lib/supabase';
 import { getRouter } from '@/ai';
 import { AIProvider, RoutingMode } from '@/ai/types';
 
 /**
  * GET /api/ai/settings
- *
- * Get user's AI settings
  */
 export async function GET(request: Request) {
   try {
@@ -26,25 +24,27 @@ export async function GET(request: Request) {
       );
     }
 
-    const result = await query(
-      `SELECT
-         routing_mode,
-         preferred_provider,
-         monthly_budget,
-         per_campaign_limit,
-         per_request_limit,
-         warn_at_percent,
-         openai_key_encrypted IS NOT NULL as has_openai_key,
-         anthropic_key_encrypted IS NOT NULL as has_anthropic_key,
-         google_key_encrypted IS NOT NULL as has_google_key,
-         mistral_key_encrypted IS NOT NULL as has_mistral_key,
-         deepseek_key_encrypted IS NOT NULL as has_deepseek_key
-       FROM user_ai_settings
-       WHERE user_id = $1`,
-      [userId]
-    );
+    const { data: settings, error } = await supabase
+      .from('user_ai_settings')
+      .select(`
+        routing_mode,
+        preferred_provider,
+        monthly_budget,
+        per_campaign_limit,
+        per_request_limit,
+        warn_at_percent,
+        openai_key_encrypted,
+        anthropic_key_encrypted,
+        google_key_encrypted,
+        mistral_key_encrypted,
+        deepseek_key_encrypted
+      `)
+      .eq('user_id', userId)
+      .single();
 
-    if (result.rows.length === 0) {
+    if (error && error.code !== 'PGRST116') throw error;
+
+    if (!settings) {
       // Return defaults
       return NextResponse.json({
         routingMode: 'auto',
@@ -58,15 +58,13 @@ export async function GET(request: Request) {
       });
     }
 
-    const settings = result.rows[0];
-
     // Build list of configured providers
     const configuredProviders: AIProvider[] = [];
-    if (settings.has_openai_key) configuredProviders.push('openai');
-    if (settings.has_anthropic_key) configuredProviders.push('anthropic');
-    if (settings.has_google_key) configuredProviders.push('google');
-    if (settings.has_mistral_key) configuredProviders.push('mistral');
-    if (settings.has_deepseek_key) configuredProviders.push('deepseek');
+    if (settings.openai_key_encrypted) configuredProviders.push('openai');
+    if (settings.anthropic_key_encrypted) configuredProviders.push('anthropic');
+    if (settings.google_key_encrypted) configuredProviders.push('google');
+    if (settings.mistral_key_encrypted) configuredProviders.push('mistral');
+    if (settings.deepseek_key_encrypted) configuredProviders.push('deepseek');
 
     return NextResponse.json({
       routingMode: settings.routing_mode,
@@ -89,8 +87,6 @@ export async function GET(request: Request) {
 
 /**
  * POST /api/ai/settings
- *
- * Update user's AI settings
  */
 export async function POST(request: Request) {
   try {
@@ -122,29 +118,20 @@ export async function POST(request: Request) {
     }
 
     // Upsert settings
-    await query(
-      `INSERT INTO user_ai_settings (user_id, routing_mode, preferred_provider,
-         monthly_budget, per_campaign_limit, per_request_limit, warn_at_percent)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
-       ON CONFLICT (user_id) DO UPDATE SET
-         routing_mode = COALESCE($2, user_ai_settings.routing_mode),
-         preferred_provider = $3,
-         monthly_budget = COALESCE($4, user_ai_settings.monthly_budget),
-         per_campaign_limit = COALESCE($5, user_ai_settings.per_campaign_limit),
-         per_request_limit = COALESCE($6, user_ai_settings.per_request_limit),
-         warn_at_percent = COALESCE($7, user_ai_settings.warn_at_percent),
-         updated_at = NOW()`,
-      [
-        userId,
-        routingMode || 'auto',
-        preferredProvider || null,
-        monthlyBudget || null,
-        perCampaignLimit || null,
-        perRequestLimit || null,
-        warnAtPercent || 80,
-      ]
-    );
+    const { error } = await supabase
+      .from('user_ai_settings')
+      .upsert({
+        user_id: userId,
+        routing_mode: routingMode || 'auto',
+        preferred_provider: preferredProvider || null,
+        monthly_budget: monthlyBudget || null,
+        per_campaign_limit: perCampaignLimit || null,
+        per_request_limit: perRequestLimit || null,
+        warn_at_percent: warnAtPercent || 80,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'user_id' });
 
+    if (error) throw error;
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error('Update AI Settings Error:', error);
@@ -157,8 +144,6 @@ export async function POST(request: Request) {
 
 /**
  * PUT /api/ai/settings/keys
- *
- * Add or update a provider API key (BYOK)
  */
 export async function PUT(request: Request) {
   try {
@@ -182,7 +167,6 @@ export async function PUT(request: Request) {
     }
 
     // Validate API key by making a test request
-    const router = getRouter();
     const providerImpl = await import(`@/ai/providers/${provider}`);
     const isValid = await providerImpl[`${provider}Provider`].validateApiKey(apiKey);
 
@@ -193,25 +177,20 @@ export async function PUT(request: Request) {
       );
     }
 
-    // TODO: Encrypt the key before storing
-    // For now, we store it directly (in production, use proper encryption)
     const keyColumn = `${provider}_key_encrypted`;
 
     // Ensure user has a settings row
-    await query(
-      `INSERT INTO user_ai_settings (user_id)
-       VALUES ($1)
-       ON CONFLICT (user_id) DO NOTHING`,
-      [userId]
-    );
+    await supabase
+      .from('user_ai_settings')
+      .upsert({ user_id: userId }, { onConflict: 'user_id' });
 
     // Update the key
-    await query(
-      `UPDATE user_ai_settings
-       SET ${keyColumn} = $1, updated_at = NOW()
-       WHERE user_id = $2`,
-      [apiKey, userId]  // TODO: Encrypt apiKey
-    );
+    const { error } = await supabase
+      .from('user_ai_settings')
+      .update({ [keyColumn]: apiKey, updated_at: new Date().toISOString() })
+      .eq('user_id', userId);
+
+    if (error) throw error;
 
     return NextResponse.json({
       success: true,
@@ -228,8 +207,6 @@ export async function PUT(request: Request) {
 
 /**
  * DELETE /api/ai/settings/keys
- *
- * Remove a provider API key
  */
 export async function DELETE(request: Request) {
   try {
@@ -246,12 +223,12 @@ export async function DELETE(request: Request) {
 
     const keyColumn = `${provider}_key_encrypted`;
 
-    await query(
-      `UPDATE user_ai_settings
-       SET ${keyColumn} = NULL, updated_at = NOW()
-       WHERE user_id = $1`,
-      [userId]
-    );
+    const { error } = await supabase
+      .from('user_ai_settings')
+      .update({ [keyColumn]: null, updated_at: new Date().toISOString() })
+      .eq('user_id', userId);
+
+    if (error) throw error;
 
     return NextResponse.json({
       success: true,

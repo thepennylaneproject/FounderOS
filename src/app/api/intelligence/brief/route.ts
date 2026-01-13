@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+export const dynamic = 'force-dynamic';
 import { generateStrategicBrief } from '@/intelligence/StrategicBrief';
 
 export async function GET() {

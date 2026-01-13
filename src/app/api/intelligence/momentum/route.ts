@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+export const dynamic = 'force-dynamic';
 import { calculateMomentum } from '@/intelligence/MomentumEngine';
 
 export async function GET() {

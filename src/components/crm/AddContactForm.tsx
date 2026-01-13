@@ -2,20 +2,27 @@
 
 import React, { useState } from 'react';
 import { useUI } from '@/context/UIContext';
-import { CheckCircle2, MessageSquare, Send, ArrowRight, AlertCircle } from 'lucide-react';
+import { CheckCircle2, MessageSquare, Send, ArrowRight, AlertCircle, RotateCcw } from 'lucide-react';
 import { validateContactForm } from '@/lib/validation';
+import { useFormDraft } from '@/hooks/useFormDraft';
+
+const INITIAL_FORM_DATA = {
+    email: '',
+    first_name: '',
+    last_name: '',
+    company_name: '',
+    stage: 'lead'
+};
 
 export const AddContactForm: React.FC<{ onSuccess: () => void }> = ({ onSuccess }) => {
     const { showToast, closeModal } = useUI();
     const [submitting, setSubmitting] = useState(false);
     const [created, setCreated] = useState<any>(null);
     const [errors, setErrors] = useState<Record<string, string>>({});
-    const [formData, setFormData] = useState({
-        email: '',
-        first_name: '',
-        last_name: '',
-        company_name: '',
-        stage: 'lead' // Default to 'lead'
+    
+    const { values: formData, setValue, clearDraft, hasRestoredDraft } = useFormDraft({
+        key: 'add-contact-form',
+        initialValues: INITIAL_FORM_DATA,
     });
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -51,6 +58,8 @@ export const AddContactForm: React.FC<{ onSuccess: () => void }> = ({ onSuccess 
                 return;
             }
 
+            // Clear the draft on successful submission
+            clearDraft();
             setCreated(data);
         } catch (error) {
             console.error(error);
@@ -61,9 +70,11 @@ export const AddContactForm: React.FC<{ onSuccess: () => void }> = ({ onSuccess 
     };
 
     const handleClose = () => {
+        clearDraft();
         onSuccess();
         closeModal();
     };
+
 
     // Success screen
     if (created) {
@@ -118,6 +129,21 @@ export const AddContactForm: React.FC<{ onSuccess: () => void }> = ({ onSuccess 
     // Form
     return (
         <form onSubmit={handleSubmit} className="space-y-6">
+            {hasRestoredDraft && (
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-sm flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <RotateCcw size={14} className="text-blue-600" />
+                        <p className="text-[10px] font-sans text-blue-800">We restored your unsaved draft.</p>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={clearDraft}
+                        className="text-[10px] font-sans font-bold uppercase tracking-widest text-blue-600 hover:text-blue-800"
+                    >
+                        Discard
+                    </button>
+                </div>
+            )}
             <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                     <label className="text-[10px] font-sans font-bold uppercase tracking-widest text-zinc-400">First Name</label>
@@ -125,7 +151,7 @@ export const AddContactForm: React.FC<{ onSuccess: () => void }> = ({ onSuccess 
                         type="text"
                         value={formData.first_name}
                         onChange={(e) => {
-                            setFormData({ ...formData, first_name: e.target.value });
+                            setValue('first_name', e.target.value);
                             if (errors.first_name) setErrors({ ...errors, first_name: '' });
                         }}
                         className={`w-full bg-white border p-3 text-sm font-sans focus:ring-0 transition-colors outline-none ${
@@ -145,7 +171,7 @@ export const AddContactForm: React.FC<{ onSuccess: () => void }> = ({ onSuccess 
                         type="text"
                         value={formData.last_name}
                         onChange={(e) => {
-                            setFormData({ ...formData, last_name: e.target.value });
+                            setValue('last_name', e.target.value);
                             if (errors.last_name) setErrors({ ...errors, last_name: '' });
                         }}
                         className={`w-full bg-white border p-3 text-sm font-sans focus:ring-0 transition-colors outline-none ${
@@ -167,7 +193,7 @@ export const AddContactForm: React.FC<{ onSuccess: () => void }> = ({ onSuccess 
                     type="email"
                     value={formData.email}
                     onChange={(e) => {
-                        setFormData({ ...formData, email: e.target.value });
+                        setValue('email', e.target.value);
                         if (errors.email) setErrors({ ...errors, email: '' });
                     }}
                     className={`w-full bg-white border p-3 text-sm font-sans focus:ring-0 transition-colors outline-none lowercase ${
@@ -187,7 +213,7 @@ export const AddContactForm: React.FC<{ onSuccess: () => void }> = ({ onSuccess 
                 <input
                     type="text"
                     value={formData.company_name}
-                    onChange={(e) => setFormData({ ...formData, company_name: e.target.value })}
+                    onChange={(e) => setValue('company_name', e.target.value)}
                     className="w-full bg-white border border-black/5 p-3 text-sm font-sans focus:ring-0 focus:border-[var(--rose-gold)] transition-colors outline-none"
                 />
             </div>
@@ -196,7 +222,7 @@ export const AddContactForm: React.FC<{ onSuccess: () => void }> = ({ onSuccess 
                 <label className="text-[10px] font-sans font-bold uppercase tracking-widest text-zinc-400">Pipeline Stage</label>
                 <select
                     value={formData.stage}
-                    onChange={(e) => setFormData({ ...formData, stage: e.target.value })}
+                    onChange={(e) => setValue('stage', e.target.value)}
                     className="w-full bg-white border border-black/5 p-3 text-sm font-sans focus:ring-0 focus:border-[var(--rose-gold)] transition-colors outline-none appearance-none"
                 >
                     <option value="lead">Lead</option>

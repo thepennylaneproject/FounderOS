@@ -59,14 +59,15 @@ export class DomainManager {
     }
 
     async validateDomain(domain: string): Promise<DomainHealth> {
-        const [spf, dmarc] = await Promise.all([
+        const [spf, dmarc, dkim] = await Promise.all([
             this.checkSPF(domain),
-            this.checkDMARC(domain)
+            this.checkDMARC(domain),
+            this.checkDKIM(domain)
         ]);
 
         const health = {
             spf,
-            dkim: false,
+            dkim,
             dmarc,
             blacklists: [],
             reputation: 100
@@ -75,7 +76,7 @@ export class DomainManager {
         const { error } = await supabase
             .from('domains')
             .update({ 
-                status: health.spf && health.dmarc ? 'validated' : 'pending_dns',
+                status: health.spf && health.dmarc && health.dkim ? 'validated' : 'pending_dns',
                 updated_at: new Date().toISOString()
             })
             .eq('name', domain);
@@ -97,6 +98,17 @@ export class DomainManager {
         try {
             const txtRecords = await dns.resolveTxt(`_dmarc.${domain}`);
             return txtRecords.some(records => records.some(record => record.includes('v=DMARC1')));
+        } catch {
+            return false;
+        }
+    }
+
+    private async checkDKIM(domain: string): Promise<boolean> {
+        try {
+            // SendGrid standard uses s1 and s2 selectors
+            const s1 = await dns.resolveCname(`s1._domainkey.${domain}`);
+            const s2 = await dns.resolveCname(`s2._domainkey.${domain}`);
+            return s1.length > 0 && s2.length > 0;
         } catch {
             return false;
         }

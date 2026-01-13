@@ -1,0 +1,106 @@
+/* FounderOS Shepherd.js Tour Styling */
+
+.shepherd-modal-overlay-container {
+    z-index: 9999;
+}
+
+.shepherd-element {
+    z-index: 10000;
+    font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+.shepherd-content {
+    border-radius: 8px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+    background: white;
+    max-width: 380px;
+}
+
+.shepherd-header {
+    padding: 16px 20px 8px;
+    border-bottom: none;
+    background: transparent;
+}
+
+.shepherd-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #18181b;
+    font-family: var(--font-serif), Georgia, serif;
+}
+
+.shepherd-cancel-icon {
+    color: #71717a;
+    font-size: 24px;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+}
+
+.shepherd-cancel-icon:hover {
+    opacity: 1;
+}
+
+.shepherd-text {
+    padding: 0 20px 16px;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #52525b;
+}
+
+.shepherd-footer {
+    padding: 12px 20px 16px;
+    border-top: none;
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.shepherd-button {
+    padding: 8px 16px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-radius: 4px;
+    transition: all 0.2s;
+    cursor: pointer;
+}
+
+.shepherd-button:not(.shepherd-button-secondary) {
+    background: #18181b;
+    color: white;
+    border: none;
+}
+
+.shepherd-button:not(.shepherd-button-secondary):hover {
+    background: #3f3f46;
+}
+
+.shepherd-button-secondary {
+    background: transparent;
+    color: #71717a;
+    border: 1px solid #e4e4e7;
+}
+
+.shepherd-button-secondary:hover {
+    background: #f4f4f5;
+    color: #18181b;
+}
+
+/* Arrow styling */
+.shepherd-arrow {
+    border-color: white;
+}
+
+.shepherd-arrow::before {
+    background: white;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+/* Highlight effect */
+.shepherd-target {
+    outline: 2px solid var(--rose-gold, #b5988c) !important;
+    outline-offset: 4px;
+    border-radius: 4px;
+}

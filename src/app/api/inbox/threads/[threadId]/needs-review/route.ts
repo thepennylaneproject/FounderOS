@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { query } from '@/lib/db';
+import supabase from '@/lib/supabase';
 
 export async function POST(
     request: Request,
@@ -7,15 +7,20 @@ export async function POST(
 ) {
     try {
         const { needs_review } = await request.json();
-        await query(
-            `UPDATE thread_states
-             SET needs_review = $1, user_overridden = true, updated_at = CURRENT_TIMESTAMP
-             WHERE thread_id = $2`,
-            [!!needs_review, params.threadId]
-        );
+        
+        const { error } = await supabase
+            .from('thread_states')
+            .update({
+                needs_review: !!needs_review,
+                user_overridden: true,
+                updated_at: new Date().toISOString()
+            })
+            .eq('thread_id', params.threadId);
 
+        if (error) throw error;
         return NextResponse.json({ status: 'ok' });
     } catch (error: any) {
+        console.error('Error updating needs_review:', error);
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }

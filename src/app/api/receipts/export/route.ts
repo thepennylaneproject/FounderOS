@@ -1,9 +1,16 @@
 import { NextResponse } from 'next/server';
-import { query } from '@/lib/db';
+export const dynamic = 'force-dynamic';
+import supabase from '@/lib/supabase';
 
 export async function GET() {
     try {
-        const res = await query('SELECT * FROM receipts ORDER BY date DESC');
+        const { data, error } = await supabase
+            .from('receipts')
+            .select('*')
+            .order('date', { ascending: false });
+
+        if (error) throw error;
+
         const headers = [
             'vendor_name',
             'amount',
@@ -15,7 +22,7 @@ export async function GET() {
             'thread_id'
         ];
 
-        const rows = res.rows.map((r: any) => [
+        const rows = (data || []).map((r: any) => [
             r.vendor_name,
             r.amount,
             r.currency,
@@ -35,6 +42,7 @@ export async function GET() {
             }
         });
     } catch (error: any) {
+        console.error('Error exporting receipts:', error);
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }

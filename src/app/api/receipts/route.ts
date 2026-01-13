@@ -1,5 +1,6 @@
-import { NextResponse } from 'next/server';
-import { query } from '@/lib/db';
+import { NextRequest, NextResponse } from 'next/server';
+export const dynamic = 'force-dynamic';
+import supabase from '@/lib/supabase';
 
 export async function GET(request: Request) {
     try {
@@ -7,27 +8,21 @@ export async function GET(request: Request) {
         const category = searchParams.get('category');
         const status = searchParams.get('status');
 
-        const filters: string[] = [];
-        const params: any[] = [];
+        let query = supabase.from('receipts').select('*');
 
         if (category) {
-            params.push(category);
-            filters.push(`category = $${params.length}`);
+            query = query.eq('category', category);
         }
         if (status) {
-            params.push(status);
-            filters.push(`payment_status = $${params.length}`);
+            query = query.eq('payment_status', status);
         }
 
-        const where = filters.length ? `WHERE ${filters.join(' AND ')}` : '';
+        const { data, error } = await query.order('date', { ascending: false });
 
-        const res = await query(
-            `SELECT * FROM receipts ${where} ORDER BY date DESC`,
-            params
-        );
-
-        return NextResponse.json(res.rows);
+        if (error) throw error;
+        return NextResponse.json(data || []);
     } catch (error: any) {
+        console.error('Error fetching receipts:', error);
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }

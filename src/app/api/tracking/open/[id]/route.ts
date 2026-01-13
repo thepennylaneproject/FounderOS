@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { query } from '@/lib/db';
+import supabase from '@/lib/supabase';
 
 export async function GET(
     request: Request,
@@ -9,12 +9,14 @@ export async function GET(
 
     try {
         // Log the open event if not already logged
-        await query(
-            `UPDATE email_logs 
-       SET status = 'opened', opened_at = COALESCE(opened_at, CURRENT_TIMESTAMP)
-       WHERE id = $1 OR tracking_id = $1`,
-            [trackingId]
-        );
+        await supabase
+            .from('email_logs')
+            .update({
+                status: 'opened',
+                opened_at: new Date().toISOString()
+            })
+            .or(`id.eq.${trackingId},tracking_id.eq.${trackingId}`)
+            .is('opened_at', null);
     } catch (error) {
         console.error('Error logging email open:', error);
     }

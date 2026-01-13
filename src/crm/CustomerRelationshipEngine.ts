@@ -70,16 +70,27 @@ export class ModernCRM {
     }
 
     async createContact(contact: Partial<Contact>): Promise<string> {
+        // Check for existing contact with this email
+        const { data: existing } = await supabase
+            .from('contacts')
+            .select('id')
+            .eq('email', contact.email)
+            .maybeSingle();
+
+        if (existing) {
+            throw new Error('duplicate');
+        }
+
         const { data, error } = await supabase
             .from('contacts')
-            .upsert({
+            .insert({
                 email: contact.email,
                 first_name: contact.first_name,
                 last_name: contact.last_name,
                 company_name: contact.company_name,
                 stage: contact.stage || 'lead',
                 updated_at: new Date().toISOString()
-            }, { onConflict: 'email' })
+            })
             .select('id')
             .single();
 
@@ -90,6 +101,7 @@ export class ModernCRM {
         await this.enrichContact(id);
         return id;
     }
+
 
     async getContact(id: string): Promise<Contact> {
         const { data, error } = await supabase

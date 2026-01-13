@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { emailClient } from '@/lib/email';
-import { query } from '@/lib/db';
+import supabase from '@/lib/supabase';
 
 export async function POST(request: Request) {
     try {
@@ -12,13 +12,21 @@ export async function POST(request: Request) {
         }
 
         // 1. Log to DB first to get an ID for tracing
-        const logRes = await query(
-            `INSERT INTO email_logs (campaign_id, contact_id, domain_id, sender, recipient, status)
-       VALUES ($1, $2, $3, $4, $5, $6)
-       RETURNING id`,
-            [campaignId || null, contactId || null, domainId || null, resolvedFrom, to, 'sent']
-        );
-        const logId = logRes.rows[0].id;
+        const { data, error } = await supabase
+            .from('email_logs')
+            .insert({
+                campaign_id: campaignId || null,
+                contact_id: contactId || null,
+                domain_id: domainId || null,
+                sender: resolvedFrom,
+                recipient: to,
+                status: 'sent'
+            })
+            .select('id')
+            .single();
+
+        if (error) throw error;
+        const logId = data.id;
 
         // 2. Send the email with the logId for tracking
         await emailClient.sendEmail({ from: resolvedFrom, to, subject, body }, logId);

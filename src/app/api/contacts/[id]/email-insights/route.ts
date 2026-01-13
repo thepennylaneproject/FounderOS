@@ -2,11 +2,10 @@
  * GET /api/contacts/{id}/email-insights
  *
  * Get all email analyses for a specific contact
- * Shows recent emails received, their analysis, and sentiment/intent
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { query } from '@/lib/db';
+import supabase from '@/lib/supabase';
 
 export async function GET(
     request: NextRequest,
@@ -27,50 +26,49 @@ export async function GET(
         }
 
         // Get email insights for contact
-        const result = await query(
-            `SELECT
-                ae.id,
-                ae.email_log_id,
-                ae.intent,
-                ae.sentiment,
-                ae.urgency,
-                ae.timeline_mentioned,
-                ae.decision_timeline,
-                ae.buying_signals,
-                ae.objections,
-                ae.action_items,
-                ae.questions_asked,
-                ae.recommended_action,
-                ae.recommended_action_description,
-                ae.suggested_score_delta,
-                ae.suggested_momentum_delta,
-                ae.should_mark_hot_lead,
-                ae.suggested_closer_signal,
-                ae.confidence_score,
-                ae.created_at,
-                el.subject,
-                el.created_at as email_received_at
-            FROM analyzed_emails ae
-            JOIN email_logs el ON ae.email_log_id = el.id
-            WHERE ae.contact_id = $1
-            ORDER BY el.created_at DESC
-            LIMIT $2 OFFSET $3`,
-            [contactId, limit, offset]
-        );
+        const { data: insights, error: insightsError } = await supabase
+            .from('analyzed_emails')
+            .select(`
+                id,
+                email_log_id,
+                intent,
+                sentiment,
+                urgency,
+                timeline_mentioned,
+                decision_timeline,
+                buying_signals,
+                objections,
+                action_items,
+                questions_asked,
+                recommended_action,
+                recommended_action_description,
+                suggested_score_delta,
+                suggested_momentum_delta,
+                should_mark_hot_lead,
+                suggested_closer_signal,
+                confidence_score,
+                created_at
+            `)
+            .eq('contact_id', contactId)
+            .order('created_at', { ascending: false })
+            .range(offset, offset + limit - 1);
+
+        if (insightsError) throw insightsError;
 
         // Get total count
-        const countResult = await query(
-            'SELECT COUNT(*) as total FROM analyzed_emails WHERE contact_id = $1',
-            [contactId]
-        );
+        const { count, error: countError } = await supabase
+            .from('analyzed_emails')
+            .select('*', { count: 'exact', head: true })
+            .eq('contact_id', contactId);
 
-        const insights = result.rows || [];
-        const total = parseInt(countResult.rows?.[0]?.total || '0', 10);
+        if (countError) throw countError;
+
+        const total = count || 0;
 
         return NextResponse.json({
             success: true,
             contact_id: contactId,
-            insights,
+            insights: insights || [],
             pagination: {
                 limit,
                 offset,

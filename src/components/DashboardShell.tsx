@@ -18,6 +18,9 @@ import { useUI } from '@/context/UIContext';
 import { AddContactForm } from '@/components/crm/AddContactForm';
 import { AddDomainForm } from '@/components/domains/AddDomainForm';
 import { CreateCampaignForm } from '@/components/campaigns/CreateCampaignForm';
+import { GuidedTour } from '@/components/onboarding/GuidedTour';
+import { CommandPalette, useCommandPalette } from '@/components/ui/CommandPalette';
+import '@/styles/tour.css';
 
 const SidebarItem: React.FC<{ icon: any, label: string, href: string, active?: boolean }> = ({ icon: Icon, label, href, active }) => (
     <Link href={href}>
@@ -32,6 +35,21 @@ const SidebarItem: React.FC<{ icon: any, label: string, href: string, active?: b
 export const DashboardShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const pathname = usePathname();
     const { openModal } = useUI();
+    const commandPalette = useCommandPalette();
+
+    const handleCommandAction = (actionId: string) => {
+        switch (actionId) {
+            case 'new-contact':
+                openModal('Add New Contact', <AddContactForm onSuccess={() => {}} />);
+                break;
+            case 'new-campaign':
+                openModal('Initialize New Campaign', <CreateCampaignForm onSuccess={() => {}} />);
+                break;
+            case 'new-domain':
+                openModal('Add Domain Infrastructure', <AddDomainForm onSuccess={() => {}} />);
+                break;
+        }
+    };
 
     const getPageTitle = () => {
         switch (pathname) {
@@ -77,7 +95,7 @@ export const DashboardShell: React.FC<{ children: React.ReactNode }> = ({ childr
 
     return (
         <div className="flex min-h-screen bg-[var(--ivory)] font-sans antialiased text-[var(--ink)]">
-            <aside className="w-64 border-r border-black/5 bg-white/50 backdrop-blur-sm flex flex-col pt-12 sticky top-0 h-screen z-20">
+            <aside data-tour="sidebar" className="w-64 border-r border-black/5 bg-white/50 backdrop-blur-sm flex flex-col pt-12 sticky top-0 h-screen z-20">
                 <div className="px-8 mb-12">
                     <Link href="/">
                         <h1 className="text-2xl font-serif italic tracking-tighter flex items-center gap-2">
@@ -89,11 +107,11 @@ export const DashboardShell: React.FC<{ children: React.ReactNode }> = ({ childr
 
                 <nav className="flex-1 space-y-1">
                     <SidebarItem icon={Zap} label="Overview" href="/" active={pathname === '/'} />
-                    <SidebarItem icon={ShieldCheck} label="Domain Health" href="/domains" active={pathname === '/domains'} />
-                    <SidebarItem icon={Send} label="Campaigns" href="/campaigns" active={pathname === '/campaigns'} />
+                    <div data-tour="domains-link"><SidebarItem icon={ShieldCheck} label="Domain Health" href="/domains" active={pathname === '/domains'} /></div>
+                    <div data-tour="campaigns-link"><SidebarItem icon={Send} label="Campaigns" href="/campaigns" active={pathname === '/campaigns'} /></div>
                     <SidebarItem icon={Inbox} label="Unified Inbox" href="/inbox" active={pathname === '/inbox'} />
                     <SidebarItem icon={Workflow} label="Automations" href="/automations" active={pathname === '/automations'} />
-                    <SidebarItem icon={Users} label="CRM" href="/crm" active={pathname === '/crm'} />
+                    <div data-tour="crm-link"><SidebarItem icon={Users} label="CRM" href="/crm" active={pathname === '/crm'} /></div>
                 </nav>
 
                 <div className="mt-auto p-6 border-t border-black/5">
@@ -110,12 +128,13 @@ export const DashboardShell: React.FC<{ children: React.ReactNode }> = ({ childr
 
             {/* Main Content Area */}
             <div className="flex-1 min-h-screen flex flex-col">
-                <header className="px-12 pt-12 flex justify-between items-end mb-8 sticky top-0 bg-[var(--ivory)]/80 backdrop-blur-md z-10 pb-4 border-b border-transparent">
+                <header data-tour="dashboard-header" className="px-12 pt-12 flex justify-between items-end mb-8 sticky top-0 bg-[var(--ivory)]/80 backdrop-blur-md z-10 pb-4 border-b border-transparent">
                     <div>
                         <h2 className="text-4xl font-serif mb-1 tracking-tight">{getPageTitle()}</h2>
                         <p className="text-xs font-sans text-zinc-500 tracking-tight">System Status: <span className="text-[var(--forest-green)] font-medium underline underline-offset-4 decoration-black/5">Fully Operational</span></p>
                     </div>
                     <button
+                        data-tour="quick-launch"
                         onClick={handleQuickLaunch}
                         className="ink-button flex items-center gap-2 text-xs font-sans font-bold uppercase tracking-widest hover:gap-3 transition-all px-6 py-3"
                     >
@@ -127,6 +146,13 @@ export const DashboardShell: React.FC<{ children: React.ReactNode }> = ({ childr
                     {children}
                 </main>
             </div>
+            <GuidedTour />
+            <CommandPalette
+                isOpen={commandPalette.isOpen}
+                onClose={commandPalette.close}
+                onAction={handleCommandAction}
+            />
         </div>
     );
 };
+

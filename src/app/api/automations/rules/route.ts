@@ -1,11 +1,17 @@
 import { NextResponse } from 'next/server';
-import { query } from '@/lib/db';
+import supabase from '@/lib/supabase';
 
 export async function GET() {
     try {
-        const res = await query('SELECT * FROM rules ORDER BY priority ASC');
-        return NextResponse.json(res.rows);
+        const { data, error } = await supabase
+            .from('rules')
+            .select('*')
+            .order('priority', { ascending: true });
+
+        if (error) throw error;
+        return NextResponse.json(data || []);
     } catch (error: any) {
+        console.error('Error fetching rules:', error);
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }
@@ -13,20 +19,23 @@ export async function GET() {
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const res = await query(
-            `INSERT INTO rules (enabled, priority, match, action, reason_template)
-             VALUES ($1, $2, $3, $4, $5)
-             RETURNING *`,
-            [
-                body.enabled ?? true,
-                body.priority ?? 100,
-                body.match || {},
-                body.action || {},
-                body.reason_template || 'Routed because: rule match'
-            ]
-        );
-        return NextResponse.json(res.rows[0]);
+        
+        const { data, error } = await supabase
+            .from('rules')
+            .insert({
+                enabled: body.enabled ?? true,
+                priority: body.priority ?? 100,
+                match: body.match || {},
+                action: body.action || {},
+                reason_template: body.reason_template || 'Routed because: rule match'
+            })
+            .select()
+            .single();
+
+        if (error) throw error;
+        return NextResponse.json(data);
     } catch (error: any) {
+        console.error('Error creating rule:', error);
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }
@@ -37,22 +46,24 @@ export async function PUT(request: Request) {
         if (!body.id) {
             return NextResponse.json({ error: 'Missing rule id' }, { status: 400 });
         }
-        const res = await query(
-            `UPDATE rules
-             SET enabled = $1, priority = $2, match = $3, action = $4, reason_template = $5
-             WHERE id = $6
-             RETURNING *`,
-            [
-                body.enabled ?? true,
-                body.priority ?? 100,
-                body.match || {},
-                body.action || {},
-                body.reason_template || 'Routed because: rule match',
-                body.id
-            ]
-        );
-        return NextResponse.json(res.rows[0]);
+
+        const { data, error } = await supabase
+            .from('rules')
+            .update({
+                enabled: body.enabled ?? true,
+                priority: body.priority ?? 100,
+                match: body.match || {},
+                action: body.action || {},
+                reason_template: body.reason_template || 'Routed because: rule match'
+            })
+            .eq('id', body.id)
+            .select()
+            .single();
+
+        if (error) throw error;
+        return NextResponse.json(data);
     } catch (error: any) {
+        console.error('Error updating rule:', error);
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }

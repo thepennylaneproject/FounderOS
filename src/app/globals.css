@@ -51,4 +51,61 @@
   .ink-button {
     @apply bg-[var(--ink)] text-[var(--ivory)] px-6 py-2 transition-all hover:bg-[var(--forest-green)];
   }
+
+  /* Touch-friendly target sizes (44x44 minimum) */
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px];
+  }
+
+  /* Focus visible styles for keyboard navigation */
+  .focus-visible-ring {
+    @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--rose-gold)] focus-visible:ring-offset-2;
+  }
+}
+
+@layer utilities {
+  /* Screen reader only */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+
+  /* Reduced motion support */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  /* High contrast mode support */
+  @media (prefers-contrast: high) {
+    .ink-button {
+      border: 2px solid currentColor;
+    }
+  }
+
+  /* Mobile-first responsive helpers */
+  .container-mobile {
+    @apply px-4 sm:px-6 lg:px-8;
+  }
+
+  .text-responsive {
+    @apply text-sm sm:text-base lg:text-lg;
+  }
+
+  .heading-responsive {
+    @apply text-2xl sm:text-3xl lg:text-4xl;
+  }
 }

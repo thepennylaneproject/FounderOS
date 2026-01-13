@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { query } from '@/lib/db';
+import supabase from '@/lib/supabase';
 import { getRules, getThreadMessages, getAllThreadIds } from '@/inbox/db';
 import { classifyThread } from '@/inbox/classifier';
 
@@ -10,10 +10,16 @@ export async function POST() {
         for (const threadId of threadIds) {
             const messages = await getThreadMessages(threadId);
             if (messages.length === 0) continue;
-            const existing = await query('SELECT * FROM thread_states WHERE thread_id = $1', [threadId]);
+
+            // Get existing thread state
+            const { data: existingState } = await supabase
+                .from('thread_states')
+                .select('*')
+                .eq('thread_id', threadId)
+                .single();
+
             const result = classifyThread(messages, rules);
 
-            const existingState = existing.rows[0];
             const override = existingState?.user_overridden;
             const lane = override ? existingState.lane : result.threadState.lane;
             const category = override ? existingState.category : result.threadState.category;
@@ -23,62 +29,54 @@ export async function POST() {
             const confidence = override ? existingState.confidence : result.threadState.confidence;
             const evidence = override ? existingState.evidence : result.threadState.evidence;
 
-            await query(
-                `INSERT INTO thread_states
-                 (thread_id, lane, needs_review, category, reason, rule_id, confidence, risk_level, evidence, updated_at, user_overridden)
-                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, CURRENT_TIMESTAMP, $10)
-                 ON CONFLICT (thread_id) DO UPDATE SET
-                 lane = EXCLUDED.lane,
-                 needs_review = EXCLUDED.needs_review,
-                 category = EXCLUDED.category,
-                 reason = EXCLUDED.reason,
-                 rule_id = EXCLUDED.rule_id,
-                 confidence = EXCLUDED.confidence,
-                 risk_level = EXCLUDED.risk_level,
-                 evidence = EXCLUDED.evidence,
-                 updated_at = CURRENT_TIMESTAMP
-                `,
-                [
-                    threadId,
+            // Upsert thread state
+            await supabase
+                .from('thread_states')
+                .upsert({
+                    thread_id: threadId,
                     lane,
-                    needsReview,
+                    needs_review: needsReview,
                     category,
                     reason,
-                    ruleId,
+                    rule_id: ruleId,
                     confidence,
-                    result.threadState.risk_level,
-                    JSON.stringify(evidence || []),
-                    override || false
-                ]
-            );
+                    risk_level: result.threadState.risk_level,
+                    evidence: evidence || [],
+                    updated_at: new Date().toISOString(),
+                    user_overridden: override || false
+                }, { onConflict: 'thread_id' });
 
-            await query('DELETE FROM receipts WHERE thread_id = $1', [threadId]);
+            // Delete existing receipts for this thread
+            await supabase
+                .from('receipts')
+                .delete()
+                .eq('thread_id', threadId);
+
+            // Insert new receipts
             for (const receipt of result.receipts) {
-                await query(
-                    `INSERT INTO receipts
-                     (thread_id, source_message_id, vendor_name, merchant_domain, amount, currency, date, category, payment_status, transaction_reference, amount_source, evidence, confidence)
-                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
-                    [
-                        receipt.thread_id,
-                        receipt.source_message_id,
-                        receipt.vendor_name,
-                        receipt.merchant_domain,
-                        receipt.amount,
-                        receipt.currency,
-                        receipt.date,
-                        receipt.category,
-                        receipt.payment_status,
-                        receipt.transaction_reference,
-                        receipt.amount_source,
-                        receipt.evidence,
-                        receipt.confidence
-                    ]
-                );
+                await supabase
+                    .from('receipts')
+                    .insert({
+                        thread_id: receipt.thread_id,
+                        source_message_id: receipt.source_message_id,
+                        vendor_name: receipt.vendor_name,
+                        merchant_domain: receipt.merchant_domain,
+                        amount: receipt.amount,
+                        currency: receipt.currency,
+                        date: receipt.date,
+                        category: receipt.category,
+                        payment_status: receipt.payment_status,
+                        transaction_reference: receipt.transaction_reference,
+                        amount_source: receipt.amount_source,
+                        evidence: receipt.evidence,
+                        confidence: receipt.confidence
+                    });
             }
         }
 
         return NextResponse.json({ status: 'ok', threads: threadIds.length });
     } catch (error: any) {
+        console.error('Reclassify error:', error);
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }

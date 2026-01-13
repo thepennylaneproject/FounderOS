@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+export const dynamic = 'force-dynamic';
 import { calculateDeliverability } from '@/intelligence/DeliverabilityEngine';
 
 export async function GET() {

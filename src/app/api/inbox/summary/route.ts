@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { query } from '@/lib/db';
+export const dynamic = 'force-dynamic';
+import supabase from '@/lib/supabase';
 
 const TILE_CATEGORIES = [
     'operations',
@@ -12,29 +13,51 @@ const TILE_CATEGORIES = [
 
 export async function GET() {
     try {
-        const threadsRes = await query(
-            `
-            WITH latest AS (
-                SELECT DISTINCT ON (thread_id) thread_id, from_name, from_email, received_at
-                FROM email_messages
-                ORDER BY thread_id, received_at DESC
-            )
-            SELECT ts.*, lm.from_name, lm.from_email, lm.received_at
-            FROM thread_states ts
-            JOIN latest lm ON lm.thread_id = ts.thread_id
-        `
-        );
+        // Get all thread states
+        const { data: threadStates, error: tsError } = await supabase
+            .from('thread_states')
+            .select('*');
+
+        if (tsError) throw tsError;
+
+        // Get latest message per thread
+        const { data: messages, error: msgError } = await supabase
+            .from('email_messages')
+            .select('thread_id, from_name, from_email, received_at')
+            .order('received_at', { ascending: false });
+
+        if (msgError) throw msgError;
+
+        // Create a map of latest message per thread
+        const latestByThread = new Map<string, any>();
+        for (const msg of (messages || [])) {
+            if (!latestByThread.has(msg.thread_id)) {
+                latestByThread.set(msg.thread_id, msg);
+            }
+        }
+
+        // Join thread states with latest messages
+        const threadsWithMessages = (threadStates || []).map(ts => {
+            const latest = latestByThread.get(ts.thread_id);
+            return {
+                ...ts,
+                from_name: latest?.from_name || null,
+                from_email: latest?.from_email || null,
+                received_at: latest?.received_at || null
+            };
+        });
 
         const highRiskThreads = new Set(
-            threadsRes.rows
+            threadsWithMessages
                 .filter((r: any) => r.risk_level === 'high')
                 .map((r: any) => r.thread_id)
         );
 
         const tiles = TILE_CATEGORIES.map((category) => {
-            const rows = threadsRes.rows.filter((r: any) => r.category === category);
+            const rows = threadsWithMessages.filter((r: any) => r.category === category);
             const count = rows.length;
             const oldest = rows.reduce((acc: number | null, r: any) => {
+                if (!r.received_at) return acc;
                 const ts = new Date(r.received_at).getTime();
                 if (!acc || ts < acc) return ts;
                 return acc;
@@ -62,6 +85,7 @@ export async function GET() {
 
         return NextResponse.json({ tiles });
     } catch (error: any) {
+        console.error('Error in inbox summary:', error);
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }

@@ -2,16 +2,18 @@
 
 import React, { useState } from 'react';
 import { useUI } from '@/context/UIContext';
-import { Sparkles, Send, Copy, RefreshCw } from 'lucide-react';
+import { Sparkles, Send, Copy, RefreshCw, AlertCircle } from 'lucide-react';
 
 export const AIDraftModal: React.FC<{ contact: any }> = ({ contact }) => {
     const { showToast, closeModal } = useUI();
     const [loading, setLoading] = useState(false);
     const [draft, setDraft] = useState<{ subject: string; body: string } | null>(null);
     const [intent, setIntent] = useState('outreach');
+    const [error, setError] = useState<string | null>(null);
 
     const generateDraft = async () => {
         setLoading(true);
+        setError(null);
         try {
             const res = await fetch('/api/ai/draft', {
                 method: 'POST',
@@ -19,18 +21,24 @@ export const AIDraftModal: React.FC<{ contact: any }> = ({ contact }) => {
                 body: JSON.stringify({ contactId: contact.id, intent }),
             });
 
-            if (!res.ok) throw new Error('AI Engine rejected request');
+            if (!res.ok) {
+                const errorData = await res.json().catch(() => ({}));
+                throw new Error(errorData.error || 'The AI service is temporarily unavailable. Please try again.');
+            }
 
             const data = await res.json();
             setDraft(data);
             showToast('AI has generated a draft', 'success');
-        } catch (error) {
-            console.error(error);
-            showToast('Failed to generate draft', 'error');
+        } catch (err: any) {
+            console.error(err);
+            const message = err.message || 'Failed to generate draft. Please try again.';
+            setError(message);
+            showToast(message, 'error');
         } finally {
             setLoading(false);
         }
     };
+
 
     const handleCopy = () => {
         if (!draft) return;
@@ -85,6 +93,22 @@ export const AIDraftModal: React.FC<{ contact: any }> = ({ contact }) => {
 
             {!draft ? (
                 <div className="py-12 flex flex-col items-center justify-center border border-dashed border-black/10 rounded-sm">
+                    {error && (
+                        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-sm w-full max-w-md">
+                            <div className="flex items-start gap-3">
+                                <AlertCircle size={16} className="text-red-500 mt-0.5 flex-shrink-0" />
+                                <div>
+                                    <p className="text-sm font-sans text-red-700">{error}</p>
+                                    <button
+                                        onClick={generateDraft}
+                                        className="mt-2 text-xs font-sans font-bold uppercase tracking-widest text-red-600 hover:text-red-800"
+                                    >
+                                        Try Again
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                     <button
                         onClick={generateDraft}
                         disabled={loading}
