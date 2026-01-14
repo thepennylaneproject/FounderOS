@@ -3,8 +3,10 @@
 import React, { Suspense, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { AlertTriangle, ChevronRight, FileText, RefreshCw } from 'lucide-react';
+import { AlertTriangle, ChevronRight, FileText, RefreshCw, Edit } from 'lucide-react';
 import { useUI } from '@/context/UIContext';
+import { EmailComposer } from '@/components/email/EmailComposer';
+import { EmailActionButtons } from '@/components/email/EmailActionButtons';
 
 type Lane = 'now' | 'next' | 'waiting' | 'info' | 'noise';
 
@@ -52,6 +54,9 @@ function InboxContent() {
     const [loading, setLoading] = useState(true);
     const [needsReviewOnly, setNeedsReviewOnly] = useState(false);
     const [riskOnly, setRiskOnly] = useState(false);
+    const [composerOpen, setComposerOpen] = useState(false);
+    const [composerMode, setComposerMode] = useState<'new' | 'reply' | 'forward'>('new');
+    const [replyToId, setReplyToId] = useState<string | undefined>();
     const { showToast } = useUI();
     const searchParams = useSearchParams();
 
@@ -141,6 +146,45 @@ function InboxContent() {
         fetchThreads();
     };
 
+    const handleReply = () => {
+        if (!selected) return;
+        setComposerMode('reply');
+        setReplyToId(selected.thread_id);
+        setComposerOpen(true);
+    };
+
+    const handleReplyAll = () => {
+        if (!selected) return;
+        setComposerMode('reply');
+        setReplyToId(selected.thread_id);
+        setComposerOpen(true);
+    };
+
+    const handleForward = () => {
+        if (!selected) return;
+        setComposerMode('forward');
+        setReplyToId(selected.thread_id);
+        setComposerOpen(true);
+    };
+
+    const handleDelete = async () => {
+        if (!selected) return;
+        if (!confirm('Delete this thread?')) return;
+        await handleLaneMove(selected.thread_id, 'noise');
+        showToast('Thread deleted', 'success');
+    };
+
+    const handleArchive = async () => {
+        if (!selected) return;
+        await handleLaneMove(selected.thread_id, 'info');
+        showToast('Thread archived', 'success');
+    };
+
+    const handleToggleStar = async () => {
+        if (!selected) return;
+        showToast('Star toggled', 'success');
+    };
+
     const selected = useMemo(
         () => threads.find((t) => t.thread_id === selectedThread) || null,
         [threads, selectedThread]
@@ -171,6 +215,17 @@ function InboxContent() {
             </section>
 
             <section className="flex items-center gap-4">
+                <button
+                    onClick={() => {
+                        setComposerMode('new');
+                        setReplyToId(undefined);
+                        setComposerOpen(true);
+                    }}
+                    className="flex items-center gap-2 px-4 py-2 bg-[var(--forest-green)] text-[var(--ivory)] text-[10px] font-sans font-bold uppercase tracking-widest hover:bg-[var(--forest-green)]/90"
+                >
+                    <Edit size={14} />
+                    Compose
+                </button>
                 {(['now', 'next', 'waiting', 'info', 'noise'] as Lane[]).map((value) => (
                     <button
                         key={value}
@@ -252,6 +307,16 @@ function InboxContent() {
                         <div className="p-10 text-center text-zinc-400 italic">Select a thread to inspect.</div>
                     ) : (
                         <div className="flex flex-col h-full">
+                            <EmailActionButtons
+                                messageId={selected.thread_id}
+                                onReply={handleReply}
+                                onReplyAll={handleReplyAll}
+                                onForward={handleForward}
+                                onDelete={handleDelete}
+                                onArchive={handleArchive}
+                                onToggleStar={handleToggleStar}
+                                isStarred={false}
+                            />
                             <div className="p-6 border-b border-black/5">
                                 <div className="flex items-start justify-between gap-6">
                                     <div>
@@ -322,6 +387,17 @@ function InboxContent() {
                     )}
                 </div>
             </div>
+
+            <EmailComposer
+                isOpen={composerOpen}
+                onClose={() => setComposerOpen(false)}
+                mode={composerMode}
+                replyToId={replyToId}
+                onSent={() => {
+                    showToast('Email sent successfully', 'success');
+                    fetchThreads();
+                }}
+            />
         </div>
     );
 }

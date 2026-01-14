@@ -30,23 +30,18 @@ export async function POST(request: Request) {
 
     // TODO: Get organization_id from authenticated session
     // For now, we'll allow null organization_id for testing
-    const { data, error } = await supabase
+    const { data, error} = await supabase
       .from("email_domains")
-      .upsert(
-        {
-          organization_id: body.organization_id || null,
-          domain: domain,
-          dkim_private_key: body.dkimKey,
-          spf_record: body.spfRecord,
-          dmarc_policy: body.dmarcPolicy,
-          daily_limit: body.dailyLimit || 50,
-          is_verified: false,
-          updated_at: new Date().toISOString(),
-        },
-        {
-          onConflict: "domain",
-        }
-      )
+      .insert({
+        organization_id: body.organization_id || null,
+        domain: domain,
+        dkim_private_key: body.dkimKey,
+        spf_record: body.spfRecord,
+        dmarc_policy: body.dmarcPolicy,
+        daily_limit: body.dailyLimit || 50,
+        is_verified: false,
+        updated_at: new Date().toISOString(),
+      })
       .select()
       .single();
 
