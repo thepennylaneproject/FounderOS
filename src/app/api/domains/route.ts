@@ -48,3 +48,25 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }
+
+export async function DELETE(request: Request) {
+    try {
+        const { searchParams } = new URL(request.url);
+        const domain = searchParams.get('domain');
+
+        if (!domain) {
+            return NextResponse.json({ error: 'Domain name is required' }, { status: 400 });
+        }
+
+        const { error } = await supabase
+            .from('domains')
+            .delete()
+            .eq('name', domain);
+
+        if (error) throw error;
+        return NextResponse.json({ success: true });
+    } catch (error: any) {
+        console.error('Error deleting domain:', error);
+        return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+}

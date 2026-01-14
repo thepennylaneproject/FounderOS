@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, Globe, CheckCircle2, AlertCircle, RefreshCw, Lock, Copy, ChevronDown, ExternalLink } from 'lucide-react';
+import { ShieldCheck, Globe, CheckCircle2, AlertCircle, RefreshCw, Lock, Copy, ChevronDown, ExternalLink, Trash2 } from 'lucide-react';
 import { useUI } from '@/context/UIContext';
 import { AddDomainForm } from '@/components/domains/AddDomainForm';
 
@@ -262,6 +262,28 @@ export default function DomainsPage() {
         return deliverability.find(d => d.domain === domainName);
     };
 
+    const handleDeleteDomain = async (domainName: string) => {
+        if (!window.confirm(`Are you sure you want to delete ${domainName}? This action cannot be undone.`)) {
+            return;
+        }
+
+        try {
+            const res = await fetch(`/api/domains?domain=${domainName}`, {
+                method: 'DELETE'
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                showToast('Domain successfully removed', 'success');
+                fetchDomains();
+            } else {
+                throw new Error(data.error || 'Failed to delete domain');
+            }
+        } catch (err: any) {
+            console.error(err);
+            showToast(err.message || 'Failed to delete domain', 'error');
+        }
+    };
 
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
@@ -312,9 +334,18 @@ export default function DomainsPage() {
                                 <div className="p-3 rounded-full bg-[var(--ivory)] border border-black/5">
                                     <ShieldCheck size={24} className="text-[var(--forest-green)]" />
                                 </div>
-                                <span className={`text-[10px] font-sans font-bold tracking-widest uppercase px-3 py-1 rounded-full border ${domain.status === 'validated' ? 'bg-green-50 text-green-600 border-green-100' : 'bg-amber-50 text-amber-600 border-amber-100'}`}>
-                                    {domain.status}
-                                </span>
+                                <div className="flex items-center gap-2">
+                                    <span className={`text-[10px] font-sans font-bold tracking-widest uppercase px-3 py-1 rounded-full border ${domain.status === 'validated' ? 'bg-green-50 text-green-600 border-green-100' : 'bg-amber-50 text-amber-600 border-amber-100'}`}>
+                                        {domain.status}
+                                    </span>
+                                    <button
+                                        onClick={() => handleDeleteDomain(domain.name)}
+                                        className="p-1.5 text-zinc-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
+                                        title="Delete Domain"
+                                    >
+                                        <Trash2 size={14} />
+                                    </button>
+                                </div>
                             </div>
                             <h3 className="text-2xl font-serif mb-2">{domain.name}</h3>
                             <p className="text-xs font-sans text-zinc-500 mb-8 lowercase italic">Registered {new Date(domain.created_at).toLocaleDateString()}</p>
