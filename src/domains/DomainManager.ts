@@ -20,17 +20,17 @@ export interface DomainConfig {
 export class DomainManager {
     async addDomain(config: DomainConfig): Promise<void> {
         const { error } = await supabase
-            .from('domains')
+            .from('email_domains')
             .upsert({
-                name: config.domain,
-                dkim_key: config.dkimKey,
+                domain: config.domain,
+                dkim_private_key: config.dkimKey,
                 spf_record: config.spfRecord,
                 dmarc_policy: config.dmarcPolicy,
                 daily_limit: config.dailyLimit || 50,
-                status: 'active',
+                is_verified: false,
                 updated_at: new Date().toISOString()
             }, { 
-                onConflict: 'name' 
+                onConflict: 'domain' 
             });
 
         if (error) throw error;
@@ -39,9 +39,9 @@ export class DomainManager {
 
     async getDomain(domain: string) {
         const { data, error } = await supabase
-            .from('domains')
+            .from('email_domains')
             .select('*')
-            .eq('name', domain)
+            .eq('domain', domain)
             .single();
         
         if (error && error.code !== 'PGRST116') throw error;
@@ -50,7 +50,7 @@ export class DomainManager {
 
     async getAllDomains() {
         const { data, error } = await supabase
-            .from('domains')
+            .from('email_domains')
             .select('*')
             .order('created_at', { ascending: false });
         
@@ -74,12 +74,12 @@ export class DomainManager {
         };
 
         const { error } = await supabase
-            .from('domains')
+            .from('email_domains')
             .update({ 
-                status: health.spf && health.dmarc && health.dkim ? 'validated' : 'pending_dns',
+                is_verified: health.spf && health.dmarc && health.dkim,
                 updated_at: new Date().toISOString()
             })
-            .eq('name', domain);
+            .eq('domain', domain);
 
         if (error) throw error;
         return health;
