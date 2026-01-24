@@ -1,11 +1,15 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import supabase from '@/lib/supabase';
+import { getAuthContext } from '@/lib/apiAuth';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
     try {
+        const auth = getAuthContext(request);
+
         const { data: campaigns, error } = await supabase
             .from('campaigns')
             .select('*')
+            .eq('organization_id', auth.organizationId)
             .order('created_at', { ascending: false });
 
         if (error) throw error;
@@ -16,13 +20,16 @@ export async function GET() {
     }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
     try {
+        const auth = getAuthContext(request);
         const body = await request.json();
-        
+
         const { data, error } = await supabase
             .from('campaigns')
             .insert({
+                organization_id: auth.organizationId,
+                created_by: auth.userId,
                 name: body.name,
                 type: body.type || 'marketing',
                 status: body.status || 'draft',
