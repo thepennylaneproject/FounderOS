@@ -74,7 +74,6 @@ export class EmailClient {
             await client.logout();
         }
 
-        await client.logout();
         return messages;
     }
 }

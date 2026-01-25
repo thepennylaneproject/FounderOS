@@ -85,9 +85,7 @@ export class CampaignEngine {
         const campaign = await this.getCampaign(campaignId);
         if (!campaign) throw new Error('Campaign not found');
 
-        // Update status
-        await query('UPDATE campaigns SET status = $1 WHERE id = $2', ['active', campaignId]);
-
+        // Don't update status yet - wait until sends complete
         // Fetch recipients (In a real app, this would use segments)
         const contacts = await query('SELECT * FROM contacts WHERE stage != $1', ['churned']);
 
@@ -95,6 +93,9 @@ export class CampaignEngine {
 
         // Track recipients for event logging
         const sentRecipients: Array<{ email: string; contact_id: string }> = [];
+        const failedRecipients: Array<{ email: string; error: string }> = [];
+        let successCount = 0;
+        let failureCount = 0;
 
         for (const contact of contacts.rows) {
             try {
@@ -120,9 +121,16 @@ export class CampaignEngine {
                     email: contact.email,
                     contact_id: contact.id
                 });
+                successCount++;
 
             } catch (error) {
+                const errorMsg = error instanceof Error ? error.message : String(error);
                 console.error(`Failed to send campaign email to ${contact.email}:`, error);
+                failedRecipients.push({
+                    email: contact.email,
+                    error: errorMsg
+                });
+                failureCount++;
             }
         }
 
@@ -136,8 +144,24 @@ export class CampaignEngine {
             }
         }
 
-        // Complete campaign
-        await query('UPDATE campaigns SET status = $1 WHERE id = $2', ['completed', campaignId]);
+        // Determine final status based on execution results
+        let finalStatus: string;
+        if (failureCount === 0) {
+            // All sends succeeded
+            finalStatus = 'completed';
+        } else if (successCount > 0) {
+            // Some sends succeeded, some failed
+            finalStatus = 'partial';
+            console.warn(`Campaign ${campaignId} completed with partial success: ${successCount} sent, ${failureCount} failed`);
+        } else {
+            // All sends failed
+            finalStatus = 'failed';
+            console.error(`Campaign ${campaignId} execution failed: all ${failureCount} sends failed`);
+        }
+
+        // Update campaign status ONLY after all sends have been attempted
+        await query('UPDATE campaigns SET status = $1 WHERE id = $2', [finalStatus, campaignId]);
+        console.log(`Campaign ${campaignId} execution complete. Final status: ${finalStatus}`);
     }
 
     // Transactional emails
