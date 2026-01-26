@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import supabase from '@/lib/supabase';
 import { getAuthContext } from '@/lib/apiAuth';
+import { createCampaignSchema } from '@/lib/validationSchemas';
 
 export async function GET(request: NextRequest) {
     try {
@@ -25,19 +26,22 @@ export async function POST(request: NextRequest) {
         const auth = getAuthContext(request);
         const body = await request.json();
 
+        // Validate input with Zod schema
+        const validated = createCampaignSchema.parse(body);
+
         const { data, error } = await supabase
             .from('campaigns')
             .insert({
                 organization_id: auth.organizationId,
                 created_by: auth.userId,
-                name: body.name,
-                type: body.type || 'marketing',
-                status: body.status || 'draft',
-                template_id: body.template_id,
-                subject: body.subject,
-                body: body.body,
-                target_segments: body.target_segments,
-                scheduled_at: body.scheduled_at
+                name: validated.name,
+                type: validated.type,
+                status: validated.status,
+                template_id: validated.template_id,
+                subject: validated.subject,
+                body: validated.body,
+                target_segments: validated.target_segments,
+                scheduled_at: validated.scheduled_at
             })
             .select()
             .single();
@@ -45,6 +49,18 @@ export async function POST(request: NextRequest) {
         if (error) throw error;
         return NextResponse.json(data);
     } catch (error: any) {
+        // Check if it's a Zod validation error
+        if (error.name === 'ZodError') {
+            const formattedErrors = error.errors.map((err: any) => ({
+                field: err.path.join('.'),
+                message: err.message,
+            }));
+            return NextResponse.json(
+                { error: 'Validation failed', details: formattedErrors },
+                { status: 400 }
+            );
+        }
+
         console.error('Error creating campaign:', error);
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
