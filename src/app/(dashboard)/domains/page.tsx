@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, Globe, CheckCircle2, AlertCircle, RefreshCw, Lock, Copy, ChevronDown, ExternalLink, Trash2 } from 'lucide-react';
+import { ShieldCheck, Globe, CheckCircle2, AlertCircle, RefreshCw, Lock, Copy, ChevronDown, ExternalLink, Trash2, HelpCircle, Info } from 'lucide-react';
 import { useUI } from '@/context/UIContext';
 import { AddDomainForm } from '@/components/domains/AddDomainForm';
 
@@ -215,6 +215,7 @@ export default function DomainsPage() {
     const [deliverability, setDeliverability] = useState<DomainDeliverability[]>([]);
     const [loading, setLoading] = useState(true);
     const [fetchError, setFetchError] = useState<string | null>(null);
+    const [validationResults, setValidationResults] = useState<Map<string, any>>(new Map());
     const { openModal, showToast } = useUI();
 
     const fetchDomains = async () => {
@@ -251,7 +252,13 @@ export default function DomainsPage() {
 
     const handleValidate = async (domainName: string) => {
         try {
-            await fetch(`/api/domains/${domainName}/validate`, { method: 'POST' });
+            const res = await fetch(`/api/domains/${domainName}/validate`, { method: 'POST' });
+            const result = await res.json();
+            setValidationResults(prev => new Map(prev).set(domainName, result));
+            
+            // Wait a moment for database to commit the updates before re-fetching
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
             fetchDomains();
         } catch (error) {
             console.error(error);
@@ -352,25 +359,78 @@ export default function DomainsPage() {
 
                             {/* Inbox Placement Probability */}
                             {intel && (
-                                <div className="mb-6 p-4 bg-white/50 border border-black/5 rounded-sm">
-                                    <div className="flex justify-between items-center mb-2">
-                                        <span className="text-[10px] font-sans font-bold uppercase tracking-widest text-zinc-400">Inbox Placement</span>
-                                        <span className={`text-lg font-serif font-bold ${intel.riskLevel === 'low' ? 'text-green-600' :
-                                                intel.riskLevel === 'medium' ? 'text-amber-500' : 'text-red-500'
-                                            }`}>{intel.inboxPlacementProbability}%</span>
+                                <div className="mb-6">
+                                    <div className="p-4 bg-white/50 border border-black/5 rounded-sm">
+                                        <div className="flex justify-between items-center mb-2">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-[10px] font-sans font-bold uppercase tracking-widest text-zinc-400">Inbox Placement</span>
+                                                {intel.inboxPlacementProbability < 80 && (
+                                                    <HelpCircle size={12} className="text-zinc-400" />
+                                                )}
+                                            </div>
+                                            <span className={`text-lg font-serif font-bold ${intel.riskLevel === 'low' ? 'text-green-600' :
+                                                    intel.riskLevel === 'medium' ? 'text-amber-500' : 'text-red-500'
+                                                }`}>{intel.inboxPlacementProbability}%</span>
+                                        </div>
+                                        <div className="h-2 bg-black/5 rounded-full overflow-hidden mb-2">
+                                            <div
+                                                className={`h-full transition-all duration-500 ${intel.riskLevel === 'low' ? 'bg-green-500' :
+                                                        intel.riskLevel === 'medium' ? 'bg-amber-500' : 'bg-red-500'
+                                                    }`}
+                                                style={{ width: `${intel.inboxPlacementProbability}%` }}
+                                            />
+                                        </div>
+                                        {/* Show what's missing */}
+                                        {intel.inboxPlacementProbability < 100 && (
+                                            <div className="text-[9px] font-sans text-zinc-600 space-y-1">
+                                                {!intel.hasSPF && <div className="flex items-center gap-1"><span className="text-red-500">✗</span> Missing SPF (-25%)</div>}
+                                                {!intel.hasDKIM && <div className="flex items-center gap-1"><span className="text-red-500">✗</span> Missing DKIM (-25%)</div>}
+                                                {!intel.hasDMARC && <div className="flex items-center gap-1"><span className="text-red-500">✗</span> Missing DMARC (-15%)</div>}
+                                            </div>
+                                        )}
                                     </div>
-                                    <div className="h-2 bg-black/5 rounded-full overflow-hidden">
-                                        <div
-                                            className={`h-full transition-all duration-500 ${intel.riskLevel === 'low' ? 'bg-green-500' :
-                                                    intel.riskLevel === 'medium' ? 'bg-amber-500' : 'bg-red-500'
-                                                }`}
-                                            style={{ width: `${intel.inboxPlacementProbability}%` }}
-                                        />
-                                    </div>
-                                    {intel.recommendations[0] !== 'All systems nominal' && (
-                                        <p className="text-[9px] font-sans text-zinc-500 mt-2 italic">
-                                            {intel.recommendations[0]}
-                                        </p>
+                                    
+                                    {/* Troubleshooting section for low scores */}
+                                    {intel.inboxPlacementProbability < 80 && validationResults.get(domain.name) && (
+                                        <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-sm space-y-2">
+                                            <div className="flex items-start gap-2">
+                                                <Info size={14} className="text-amber-600 mt-0.5 flex-shrink-0" />
+                                                <div className="text-[10px] font-sans text-amber-900 space-y-2">
+                                                    <p className="font-bold">Troubleshooting DNS Issues:</p>
+                                                    <ul className="list-disc ml-4 space-y-1">
+                                                        {intel.recommendations.map((rec, i) => (
+                                                            <li key={i}>{rec}</li>
+                                                        ))}
+                                                    </ul>
+                                                    {validationResults.get(domain.name)?.errors && Object.keys(validationResults.get(domain.name).errors).length > 0 && (
+                                                        <div className="mt-2 pt-2 border-t border-amber-300">
+                                                            <p className="font-bold mb-1">DNS Lookup Errors:</p>
+                                                            <div className="space-y-1 text-[9px]">
+                                                                {validationResults.get(domain.name).errors.spf && (
+                                                                    <div>• SPF: {validationResults.get(domain.name).errors.spf}</div>
+                                                                )}
+                                                                {validationResults.get(domain.name).errors.dkim && (
+                                                                    <div>• DKIM: {validationResults.get(domain.name).errors.dkim}</div>
+                                                                )}
+                                                                {validationResults.get(domain.name).errors.dmarc && (
+                                                                    <div>• DMARC: {validationResults.get(domain.name).errors.dmarc}</div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                    
+                                    {/* Success message */}
+                                    {intel.inboxPlacementProbability === 100 && (
+                                        <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-sm">
+                                            <div className="flex items-center gap-2 text-[10px] font-sans text-green-800">
+                                                <CheckCircle2 size={14} className="text-green-600" />
+                                                <span>{intel.recommendations[0]}</span>
+                                            </div>
+                                        </div>
                                     )}
                                 </div>
                             )}

@@ -7,8 +7,17 @@ import { AlertTriangle, ChevronRight, FileText, RefreshCw, Edit } from 'lucide-r
 import { useUI } from '@/context/UIContext';
 import { EmailComposer } from '@/components/email/EmailComposer';
 import { EmailActionButtons } from '@/components/email/EmailActionButtons';
+import { Action, LoadingStateList, Frame } from '@/components/editorial';
 
 type Lane = 'now' | 'next' | 'waiting' | 'info' | 'noise';
+
+const LANE_LABELS: Record<Lane, string> = {
+    now: 'Priority',
+    next: 'Scheduled',
+    waiting: 'Pending',
+    info: 'Archive',
+    noise: 'Archive'
+};
 
 interface ThreadRow {
     thread_id: string;
@@ -39,7 +48,11 @@ interface Tile {
 
 export default function InboxPage() {
     return (
-        <Suspense fallback={<div className="p-10 text-center text-zinc-400 italic">Loading inbox...</div>}>
+        <Suspense fallback={
+            <div className="p-10">
+                <LoadingStateList items={8} />
+            </div>
+        }>
             <InboxContent />
         </Suspense>
     );
@@ -132,7 +145,7 @@ function InboxContent() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ lane: newLane })
         });
-        showToast(`Thread moved to ${newLane}`, 'success');
+        showToast(`Thread moved to ${LANE_LABELS[newLane]}`, 'success');
         fetchThreads();
         fetchTiles();
     };
@@ -191,122 +204,135 @@ function InboxContent() {
     );
 
     return (
-        <div className="space-y-10 animate-in fade-in slide-in-from-bottom-2 duration-500">
-            <section className="grid grid-cols-1 md:grid-cols-6 gap-4">
+        <div style={{ marginTop: 'var(--space-xl)' }} className="space-y-xl animate-in fade-in duration-500">
+            {/* Summary Tiles - Ruled format */}
+            <section className="grid grid-cols-1 md:grid-cols-6 gap-xl">
                 {tiles.map((tile) => (
                     <Link
                         key={tile.category}
                         href={`/inbox?category=${tile.category}`}
-                        className="editorial-card hover:border-[var(--forest-green)] transition-all"
+                        className="border-t hover:border-t-2 transition-all"
+                        style={{
+                            borderColor: 'var(--border-content)',
+                            paddingTop: 'var(--space-md)'
+                        }}
                     >
-                        <p className="text-[10px] font-sans font-bold uppercase tracking-widest text-zinc-400">{tile.category.replace('_', ' ')}</p>
+                        <p className="type-micro text-zinc-400">{tile.category.replace('_', ' ')}</p>
                         <div className="flex items-center justify-between mt-3">
-                            <span className="text-2xl font-serif">{tile.count}</span>
+                            <span className="type-subhead">{tile.count}</span>
                             {tile.risk_count > 0 && (
-                                <span className="text-[10px] font-sans font-bold uppercase tracking-widest text-red-500 flex items-center gap-1">
+                                <span className="type-micro text-red-500 flex items-center gap-1">
                                     <AlertTriangle size={12} /> {tile.risk_count}
                                 </span>
                             )}
                         </div>
-                        <p className="text-[10px] font-sans text-zinc-400 mt-2">Oldest: {tile.oldest_days}d</p>
-                        <p className="text-[10px] font-sans text-zinc-400">Top: {tile.top_senders.join(', ') || '—'}</p>
+                        <p className="type-micro text-zinc-400 mt-2 opacity-60">Oldest: {tile.oldest_days}d</p>
                     </Link>
                 ))}
             </section>
 
-            <section className="flex items-center gap-4">
-                <button
+            {/* Toolbar - Action primitives */}
+            <section className="flex items-center gap-md border-b" style={{ borderColor: 'var(--border-content)', paddingBottom: 'var(--space-md)' }}>
+                <Action
+                    variant="emphasized"
                     onClick={() => {
                         setComposerMode('new');
                         setReplyToId(undefined);
                         setComposerOpen(true);
                     }}
-                    className="flex items-center gap-2 px-4 py-2 bg-[var(--forest-green)] text-[var(--ivory)] text-[10px] font-sans font-bold uppercase tracking-widest hover:bg-[var(--forest-green)]/90"
+                    className="flex items-center gap-2"
                 >
                     <Edit size={14} />
                     Compose
-                </button>
-                {(['now', 'next', 'waiting', 'info', 'noise'] as Lane[]).map((value) => (
-                    <button
+                </Action>
+                {(['now', 'next', 'waiting', 'info'] as Lane[]).map((value) => (
+                    <Action
                         key={value}
+                        variant={lane === value ? 'emphasized' : 'quiet'}
                         onClick={() => setLane(value)}
-                        className={`px-4 py-2 text-[10px] font-sans font-bold uppercase tracking-widest border ${lane === value ? 'bg-[var(--forest-green)] text-[var(--ivory)]' : 'border-black/5 text-zinc-500'}`}
                     >
-                        {value}
-                    </button>
+                        {LANE_LABELS[value]}
+                    </Action>
                 ))}
-                <button
-                    onClick={() => setNeedsReviewOnly((v) => !v)}
-                    className={`ml-auto px-4 py-2 text-[10px] font-sans font-bold uppercase tracking-widest border ${needsReviewOnly ? 'bg-[var(--rose-gold)] text-[var(--ivory)]' : 'border-black/5 text-zinc-500'}`}
-                >
-                    Needs Review
-                </button>
-                <button
-                    onClick={() => setRiskOnly((v) => !v)}
-                    className={`px-4 py-2 text-[10px] font-sans font-bold uppercase tracking-widest border ${riskOnly ? 'bg-red-500 text-[var(--ivory)]' : 'border-black/5 text-zinc-500'}`}
-                >
-                    Risk
-                </button>
-                <button
-                    onClick={() => {
-                        fetchThreads();
-                        fetchTiles();
-                    }}
-                    className="p-2 border border-black/5"
-                >
-                    <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-                </button>
-                <Link
-                    href="/inbox/receipts"
-                    className="ink-button-ghost px-4 py-2 text-[10px] font-sans font-bold uppercase tracking-widest"
-                >
-                    Receipts View
-                </Link>
+                
+                <div className="ml-auto flex items-center gap-md">
+                    <Action
+                        variant={needsReviewOnly ? 'emphasized' : 'quiet'}
+                        onClick={() => setNeedsReviewOnly((v) => !v)}
+                    >
+                        Review
+                    </Action>
+                    <Action
+                        variant={riskOnly ? 'emphasized' : 'utility'}
+                        onClick={() => setRiskOnly((v) => !v)}
+                        className={riskOnly ? 'bg-red-500' : ''}
+                    >
+                        Risk
+                    </Action>
+                    <button
+                        onClick={() => {
+                            fetchThreads();
+                            fetchTiles();
+                        }}
+                        className="action-utility p-xs"
+                    >
+                        <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+                    </button>
+                    <Link
+                        href="/inbox/receipts"
+                        className="action-quiet lowercase"
+                    >
+                        Receipts
+                    </Link>
+                </div>
             </section>
 
-            <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_1.4fr] gap-8">
-                <div className="bg-white/40 border border-black/5 rounded-sm overflow-hidden">
-                    <div className="px-6 py-4 border-b border-black/5 flex items-center justify-between">
-                        <p className="text-[10px] font-sans font-bold uppercase tracking-widest text-zinc-400">Threads</p>
-                        <span className="text-[10px] font-sans text-zinc-400">{threads.length} items</span>
+            <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_1.4fr] gap-2xl">
+                {/* Thread List - Ruled items, no card container */}
+                <div className="overflow-hidden">
+                    <div className="py-md border-b mb-md flex items-center justify-between" style={{ borderColor: 'var(--border-emphasis)' }}>
+                        <p className="type-micro text-zinc-400">Threads</p>
+                        <span className="type-micro text-zinc-400 lowercase">{threads.length} items</span>
                     </div>
                     <div className="divide-y divide-black/5">
                         {loading ? (
-                            <div className="p-10 text-center text-zinc-400 italic">Loading triage...</div>
+                            <LoadingStateList items={5} />
                         ) : threads.length === 0 ? (
-                            <div className="p-10 text-center text-zinc-400 italic">No threads in this lane.</div>
+                            <div className="py-xl text-center type-body text-zinc-400 italic">No threads.</div>
                         ) : threads.map((thread) => (
                             <button
                                 key={thread.thread_id}
                                 onClick={() => setSelectedThread(thread.thread_id)}
-                                className={`w-full text-left p-6 hover:bg-black/[0.02] transition-colors ${selectedThread === thread.thread_id ? 'bg-black/[0.03]' : ''}`}
+                                className={`w-full text-left transition-colors border-t border-black/5`}
+                                style={{
+                                    padding: 'var(--space-lg) var(--space-md)',
+                                    backgroundColor: selectedThread === thread.thread_id ? 'var(--ivory)' : 'transparent',
+                                    borderLeft: selectedThread === thread.thread_id ? '2px solid var(--ink)' : 'none'
+                                }}
                             >
-                                <div className="flex items-center justify-between">
-                                    <p className="text-sm font-sans font-semibold truncate">{thread.from_name || thread.from_email}</p>
-                                    <p className="text-[10px] text-zinc-400">{new Date(thread.received_at).toLocaleDateString()}</p>
+                                <div className="flex items-center justify-between mb-2">
+                                    <p className="type-label truncate">{thread.from_name || thread.from_email}</p>
+                                    <p className="type-micro text-zinc-400">{new Date(thread.received_at).toLocaleDateString()}</p>
                                 </div>
-                                <p className="text-sm font-serif italic mt-1 truncate">{thread.subject}</p>
-                                <p className="text-[10px] text-zinc-400 line-clamp-2 mt-1">{thread.snippet}</p>
-                                <div className="flex items-center gap-3 mt-3 text-[9px] font-sans uppercase tracking-widest text-zinc-500">
-                                    <span className="px-2 py-1 border border-black/5">{thread.category.replace('_', ' ')}</span>
-                                    <span className="px-2 py-1 border border-black/5">{thread.lane}</span>
-                                    {thread.has_receipt && <span className="px-2 py-1 border border-black/5">receipt</span>}
-                                    {thread.needs_review && <span className="px-2 py-1 border border-black/5 text-amber-600">needs review</span>}
-                                    {thread.risk_level === 'high' && <span className="px-2 py-1 border border-black/5 text-red-600">risk</span>}
+                                <h4 className="type-subhead truncate italic leading-tight">{thread.subject}</h4>
+                                <p className="type-body text-zinc-400 line-clamp-2 mt-2 leading-relaxed">{thread.snippet}</p>
+                                <div className="flex items-center gap-md mt-4">
+                                    <span className="type-micro opacity-40">{LANE_LABELS[thread.lane]}</span>
+                                    {thread.has_receipt && <span className="type-micro text-rose-gold">receipt</span>}
+                                    {thread.needs_review && <span className="type-micro text-amber-600">review</span>}
+                                    {thread.risk_level === 'high' && <span className="type-micro text-red-600">risk</span>}
                                 </div>
-                                <p className="text-[10px] text-zinc-400 mt-2" title={(thread.evidence || []).join(' | ')}>
-                                    Routed because: {thread.reason || 'default classification'}
-                                </p>
                             </button>
                         ))}
                     </div>
                 </div>
 
-                <div className="bg-white/40 border border-black/5 rounded-sm overflow-hidden">
+                {/* Detail View - Full-bleed feel, no card container */}
+                <div className="overflow-hidden min-h-[600px] flex flex-col">
                     {!selected || !threadDetail ? (
-                        <div className="p-10 text-center text-zinc-400 italic">Select a thread to inspect.</div>
+                        <div className="py-xl text-center type-body text-zinc-400 italic">Select a thread to inspect.</div>
                     ) : (
-                        <div className="flex flex-col h-full">
+                        <div className="flex flex-col h-full animate-in fade-in duration-300">
                             <EmailActionButtons
                                 messageId={selected.thread_id}
                                 onReply={handleReply}
@@ -317,68 +343,70 @@ function InboxContent() {
                                 onToggleStar={handleToggleStar}
                                 isStarred={false}
                             />
-                            <div className="p-6 border-b border-black/5">
-                                <div className="flex items-start justify-between gap-6">
-                                    <div>
-                                        <p className="text-xs font-sans uppercase tracking-widest text-zinc-400">Thread</p>
-                                        <h3 className="text-2xl font-serif italic mt-2">{selected.subject}</h3>
-                                        <p className="text-xs text-zinc-500 mt-2">From {selected.from_name || selected.from_email}</p>
+                            <div className="py-xl border-b" style={{ borderColor: 'var(--border-content)' }}>
+                                <div className="flex items-start justify-between gap-xl">
+                                    <div className="flex-1">
+                                        <p className="type-micro text-zinc-400 mb-md opacity-60">Conversation</p>
+                                        <h3 className="type-headline italic">{selected.subject}</h3>
+                                        <p className="type-body text-zinc-500 mt-md">From {selected.from_name || selected.from_email}</p>
                                     </div>
-                                    <div className="space-y-2">
-                                        {(['now', 'next', 'waiting', 'info', 'noise'] as Lane[]).map((value) => (
-                                            <button
+                                    <div className="flex flex-col gap-sm min-w-[140px]">
+                                        {(['now', 'next', 'waiting', 'info'] as Lane[]).map((value) => (
+                                            <Action
                                                 key={value}
+                                                variant="quiet"
                                                 onClick={() => handleLaneMove(selected.thread_id, value)}
-                                                className="w-full text-[10px] font-sans uppercase tracking-widest border border-black/5 px-3 py-1.5 hover:bg-black/5"
+                                                className="text-right"
                                             >
-                                                Move to {value}
-                                            </button>
+                                                → {LANE_LABELS[value]}
+                                            </Action>
                                         ))}
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-3 mt-4">
-                                    <button
+                                <div className="flex items-center gap-xl mt-lg">
+                                    <Action
+                                        variant="quiet"
                                         onClick={() => handleNeedsReviewToggle(selected.thread_id, !selected.needs_review)}
-                                        className="text-[10px] font-sans uppercase tracking-widest border border-black/5 px-3 py-1.5"
+                                        className="opacity-60"
                                     >
-                                        {selected.needs_review ? 'Clear review' : 'Needs review'}
-                                    </button>
-                                    <span className="text-[10px] text-zinc-400">Rule: {selected.rule_id || 'heuristic'}</span>
-                                    <span className="text-[10px] text-zinc-400">Confidence: {(selected.confidence * 100).toFixed(0)}%</span>
+                                        {selected.needs_review ? 'Mark processed' : 'Flag for review'}
+                                    </Action>
+                                    <span className="type-micro opacity-30 lowercase">Rule: {selected.rule_id || 'heuristic'}</span>
+                                    <span className="type-micro opacity-30 lowercase">Score: {(selected.confidence * 100).toFixed(0)}%</span>
                                 </div>
                             </div>
 
-                            <div className="flex-1 overflow-y-auto divide-y divide-black/5">
+                            <div className="flex-1 overflow-y-auto divide-y divide-black/5 py-lg">
                                 {threadDetail.messages?.map((message: any) => (
-                                    <div key={message.id} className="p-6">
-                                        <div className="flex items-center justify-between text-xs text-zinc-400">
+                                    <div key={message.id} className="py-xl first:pt-0">
+                                        <div className="flex items-center justify-between type-micro text-zinc-400 mb-lg">
                                             <span>{message.from_name || message.from_email}</span>
                                             <span>{new Date(message.received_at).toLocaleString()}</span>
                                         </div>
-                                        <p className="text-sm font-sans mt-3 whitespace-pre-wrap">{message.body_text}</p>
+                                        <p className="type-body whitespace-pre-wrap leading-relaxed">{message.body_text}</p>
                                     </div>
                                 ))}
                             </div>
 
                             {threadDetail.receipts?.length > 0 && (
-                                <div className="border-t border-black/5 p-6 bg-white/60">
-                                    <p className="text-[10px] font-sans uppercase tracking-widest text-zinc-400 mb-3">Extracted Receipts</p>
+                                <div className="border-t pt-xl" style={{ borderColor: 'var(--border-emphasis)' }}>
+                                    <p className="type-micro text-zinc-400 mb-lg">Extracted Details</p>
                                     {threadDetail.receipts.map((receipt: any) => (
-                                        <div key={receipt.id} className="flex items-center justify-between py-2 text-sm">
-                                            <div className="flex items-center gap-2">
-                                                <FileText size={14} />
+                                        <div key={receipt.id} className="flex items-center justify-between py-md border-t border-black/5 type-label">
+                                            <div className="flex items-center gap-md">
+                                                <FileText size={14} className="opacity-40" />
                                                 <span>{receipt.vendor_name}</span>
-                                                <span className="text-zinc-400 text-xs">{receipt.date}</span>
+                                                <span className="opacity-40">{receipt.date}</span>
                                             </div>
-                                            <div className="flex items-center gap-4 text-xs">
+                                            <div className="flex items-center gap-xl">
                                                 <span>{receipt.currency} {receipt.amount}</span>
-                                                <span className="text-zinc-500 uppercase">{receipt.payment_status}</span>
+                                                <span className="type-micro opacity-60">{receipt.payment_status}</span>
                                             </div>
                                         </div>
                                     ))}
-                                    <div className="text-right mt-4">
-                                        <Link href="/inbox/receipts" className="text-[10px] font-sans uppercase tracking-widest text-zinc-500 hover:text-[var(--ink)]">
-                                            View receipts <ChevronRight size={12} className="inline-block ml-1" />
+                                    <div className="mt-xl">
+                                        <Link href="/inbox/receipts" className="action-quiet lowercase flex items-center gap-xs">
+                                            view all records <ChevronRight size={12} />
                                         </Link>
                                     </div>
                                 </div>

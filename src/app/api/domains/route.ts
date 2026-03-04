@@ -9,7 +9,25 @@ export async function GET() {
       .order("created_at", { ascending: false });
 
     if (error) throw error;
-    return NextResponse.json(domains || []);
+    
+    // Map the email_domains schema to the format expected by the frontend
+    const formattedDomains = (domains || []).map(d => ({
+      id: d.id,
+      name: d.domain, // Map 'domain' column to 'name' field
+      dkim_key: d.dkim_private_key, // Fixed: use dkim_private_key (where DomainManager saves DKIM)
+      spf_record: d.spf_record,
+      dmarc_policy: d.dmarc_policy,
+      daily_limit: d.daily_limit,
+      status: d.is_verified ? 'validated' : 'pending_dns',
+      created_at: d.created_at,
+      updated_at: d.updated_at,
+      last_alert_at: null,
+      bounce_rate: 0,
+      inbox_placement_pct: 100,
+      risk_level: 'low'
+    }));
+    
+    return NextResponse.json(formattedDomains);
   } catch (error: any) {
     console.error("Error fetching domains:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -68,7 +86,8 @@ export async function DELETE(request: Request) {
     const { error } = await supabase
       .from("email_domains")
       .delete()
-      .eq("domain", domain);
+      .eq("domain", domain); // Query by 'domain' column, not 'name'
+
 
     if (error) throw error;
     return NextResponse.json({ success: true });

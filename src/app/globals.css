@@ -3,61 +3,254 @@
 @tailwind utilities;
 
 :root {
-  /* Ink & Ivory Palette */
-  --ivory: #F9F7F2;
-  --ink: #1A1A1A;
-  --forest-green: #2D4033;
-  --rose-gold: #D4AF37;
-  --rose-gold-muted: #E5D5A5;
+  /* ================================================================
+     Ink & Ivory Palette
+     ================================================================ */
+  --ivory: #f9f7f2;
+  --ink: #1a1a1a;
+  --forest-green: #2d4033;
+  --rose-gold: #d4af37;
+  --rose-gold-muted: #e5d5a5;
 
-  --foreground-rgb: 26, 26, 26;
-  /* ink */
-  --background-rgb: 249, 247, 242;
-  /* ivory */
-
+  /* RGB values for opacity utilities */
+  --foreground-rgb: 26, 26, 26; /* ink */
+  --background-rgb: 249, 247, 242; /* ivory */
   --accent-green: 45, 64, 51;
   --accent-gold: 212, 175, 55;
+
+  /* ================================================================
+     Editorial Typography Scale
+     Narrative scale (Garamond, serif) for titles, editorial moments
+     Functional scale (Inter, sans) for data, navigation, toolbars
+     ================================================================ */
+
+  /* Narrative (Serif) */
+  --type-display-size: 48px;
+  --type-display-line: 1.1;
+  --type-display-spacing: -0.02em;
+  --type-display-weight: 600;
+
+  --type-headline-size: 32px;
+  --type-headline-line: 1.2;
+  --type-headline-spacing: -0.01em;
+  --type-headline-weight: 400;
+
+  --type-subhead-size: 20px;
+  --type-subhead-line: 1.3;
+  --type-subhead-spacing: 0;
+  --type-subhead-weight: 400;
+
+  /* Functional (Sans) */
+  --type-body-size: 15px;
+  --type-body-line: 1.6;
+  --type-body-spacing: 0;
+  --type-body-weight: 400;
+
+  --type-label-size: 13px;
+  --type-label-line: 1.4;
+  --type-label-spacing: 0;
+  --type-label-weight: 500;
+
+  --type-micro-size: 11px;
+  --type-micro-line: 1.3;
+  --type-micro-spacing: 0.05em;
+  --type-micro-weight: 700;
+
+  /* ================================================================
+     Spatial Rhythm (8px grid)
+     ================================================================ */
+  --space-xs: 4px; /* Inline element gaps */
+  --space-sm: 8px; /* Utility toolbar density */
+  --space-md: 16px; /* List item internal padding */
+  --space-lg: 24px; /* Section internal margins */
+  --space-xl: 48px; /* Page-level breathing room */
+  --space-2xl: 96px; /* Major section dividers */
+
+  /* ================================================================
+     Semantic Boundaries (not decoration)
+     ================================================================ */
+  --border-content: 1px solid rgba(26, 26, 26, 0.08);
+  --border-emphasis: 2px solid var(--ink);
+  --border-radius: 2px; /* Near-sharp, editorial feel */
 }
 
 @layer base {
   body {
     @apply bg-[var(--ivory)] text-[var(--ink)] selection:bg-[var(--rose-gold-muted)];
+    font-family: var(--font-inter), sans-serif;
+    font-size: var(--type-body-size);
+    line-height: var(--type-body-line);
     font-feature-settings: "kern" 1, "liga" 1;
   }
 
-  h1,
-  h2,
-  h3,
-  h4,
-  .font-serif {
+  /* Default serif elements to narrative scale */
+  h1 {
     font-family: var(--font-garamond), serif;
-    @apply tracking-tight;
+    font-size: var(--type-display-size);
+    line-height: var(--type-display-line);
+    letter-spacing: var(--type-display-spacing);
+    font-weight: var(--type-display-weight);
   }
 
-  .font-sans {
-    font-family: var(--font-inter), sans-serif;
+  h2 {
+    font-family: var(--font-garamond), serif;
+    font-size: var(--type-headline-size);
+    line-height: var(--type-headline-line);
+    letter-spacing: var(--type-headline-spacing);
+    font-weight: var(--type-headline-weight);
+  }
+
+  h3 {
+    font-family: var(--font-garamond), serif;
+    font-size: var(--type-subhead-size);
+    line-height: var(--type-subhead-line);
+    letter-spacing: var(--type-subhead-spacing);
+    font-weight: var(--type-subhead-weight);
+  }
+
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-garamond), serif;
+    font-size: var(--type-subhead-size);
+    line-height: var(--type-subhead-line);
+    letter-spacing: var(--type-subhead-spacing);
+    font-weight: var(--type-subhead-weight);
   }
 }
 
 @layer components {
+  /* ================================================================
+     Editorial Primitives
+     These replace ad-hoc component styles with semantic patterns
+     ================================================================ */
+
+  /* Frame: Semantic boundary marker (not decorative card) */
+  .editorial-frame {
+    border-top: var(--border-content);
+    padding: var(--space-lg);
+  }
+
+  /* Legacy editorial-card mapped to Frame for backward compatibility */
   .editorial-card {
-    @apply border-t border-black/5 py-8;
+    @apply editorial-frame;
   }
 
-  .rose-gold-border {
-    @apply border-[var(--rose-gold-muted)];
+  /* Action: Typographic treatment for interactive elements */
+  .action-quiet {
+    font-size: var(--type-label-size);
+    line-height: var(--type-label-line);
+    font-weight: var(--type-label-weight);
+    color: var(--ink);
+    background: transparent;
+    border: none;
+    padding: var(--space-sm) var(--space-md);
+    cursor: pointer;
+    transition: opacity 0.15s ease;
   }
 
+  .action-quiet:hover {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .action-emphasized {
+    font-size: var(--type-micro-size);
+    line-height: var(--type-micro-line);
+    letter-spacing: var(--type-micro-spacing);
+    font-weight: var(--type-micro-weight);
+    text-transform: uppercase;
+    color: var(--ivory);
+    background: var(--ink);
+    border: none;
+    padding: var(--space-sm) var(--space-lg);
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+  }
+
+  .action-emphasized:hover {
+    background: var(--forest-green);
+  }
+
+  .action-utility {
+    font-size: var(--type-micro-size);
+    line-height: var(--type-micro-line);
+    letter-spacing: var(--type-micro-spacing);
+    font-weight: var(--type-micro-weight);
+    text-transform: uppercase;
+    color: #71717a; /* zinc-500 */
+    background: transparent;
+    border: none;
+    padding: var(--space-xs) var(--space-sm);
+    cursor: pointer;
+    transition: color 0.15s ease;
+  }
+
+  .action-utility:hover {
+    color: var(--ink);
+  }
+
+  /* Legacy ink-button mapped to action-emphasized */
   .ink-button {
-    @apply bg-[var(--ink)] text-[var(--ivory)] px-6 py-2 transition-all hover:bg-[var(--forest-green)];
+    @apply action-emphasized;
   }
 
-  /* Touch-friendly target sizes (44x44 minimum) */
+  /* Typography utilities for manual application */
+  .type-display {
+    font-family: var(--font-garamond), serif;
+    font-size: var(--type-display-size);
+    line-height: var(--type-display-line);
+    letter-spacing: var(--type-display-spacing);
+    font-weight: var(--type-display-weight);
+  }
+
+  .type-headline {
+    font-family: var(--font-garamond), serif;
+    font-size: var(--type-headline-size);
+    line-height: var(--type-headline-line);
+    letter-spacing: var(--type-headline-spacing);
+    font-weight: var(--type-headline-weight);
+  }
+
+  .type-subhead {
+    font-family: var(--font-garamond), serif;
+    font-size: var(--type-subhead-size);
+    line-height: var(--type-subhead-line);
+    letter-spacing: var(--type-subhead-spacing);
+    font-weight: var(--type-subhead-weight);
+  }
+
+  .type-body {
+    font-family: var(--font-inter), sans-serif;
+    font-size: var(--type-body-size);
+    line-height: var(--type-body-line);
+    letter-spacing: var(--type-body-spacing);
+    font-weight: var(--type-body-weight);
+  }
+
+  .type-label {
+    font-family: var(--font-inter), sans-serif;
+    font-size: var(--type-label-size);
+    line-height: var(--type-label-line);
+    letter-spacing: var(--type-label-spacing);
+    font-weight: var(--type-label-weight);
+  }
+
+  .type-micro {
+    font-family: var(--font-inter), sans-serif;
+    font-size: var(--type-micro-size);
+    line-height: var(--type-micro-line);
+    letter-spacing: var(--type-micro-spacing);
+    font-weight: var(--type-micro-weight);
+    text-transform: uppercase;
+  }
+
+  /* Accessibility */
   .touch-target {
-    @apply min-h-[44px] min-w-[44px];
+    min-height: 44px;
+    min-width: 44px;
   }
 
-  /* Focus visible styles for keyboard navigation */
   .focus-visible-ring {
     @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--rose-gold)] focus-visible:ring-offset-2;
   }
@@ -91,21 +284,9 @@
 
   /* High contrast mode support */
   @media (prefers-contrast: high) {
+    .action-emphasized,
     .ink-button {
       border: 2px solid currentColor;
     }
-  }
-
-  /* Mobile-first responsive helpers */
-  .container-mobile {
-    @apply px-4 sm:px-6 lg:px-8;
-  }
-
-  .text-responsive {
-    @apply text-sm sm:text-base lg:text-lg;
-  }
-
-  .heading-responsive {
-    @apply text-2xl sm:text-3xl lg:text-4xl;
   }
 }

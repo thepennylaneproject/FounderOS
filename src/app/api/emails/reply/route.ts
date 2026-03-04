@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import supabase from '@/lib/supabase';
 
 export const dynamic = 'force-dynamic';
 
 // POST /api/emails/reply - Prepare a reply to an email
 export async function POST(req: NextRequest) {
   try {
-    const supabase = await createClient();
-    
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -78,7 +76,7 @@ function generateQuotedReplyText(message: any): string {
   const from = message.from_address;
   
   const lines = (message.body_text || '').split('\n');
-  const quotedLines = lines.map(line => `> ${line}`).join('\n');
+  const quotedLines = lines.map((line: string) => `> ${line}`).join('\n');
   
   return `\n\nOn ${date}, ${from} wrote:\n${quotedLines}`;
 }

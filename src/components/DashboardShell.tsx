@@ -13,6 +13,7 @@ import {
     Zap,
     ChevronRight,
     Plus,
+    Mail,
 } from 'lucide-react';
 import { useUI } from '@/context/UIContext';
 import { AddContactForm } from '@/components/crm/AddContactForm';
@@ -53,20 +54,21 @@ export const DashboardShell: React.FC<{ children: React.ReactNode }> = ({ childr
 
     const getPageTitle = () => {
         switch (pathname) {
-            case '/': return 'Founder Intelligence';
-            case '/domains': return 'Domain Infrastructure';
-            case '/campaigns': return 'Marketing Hub';
-            case '/crm': return 'Customer CRM';
-            case '/automations': return 'Automation Rules';
-            case '/inbox': return 'Unified Inbox';
+            case '/': return 'Overview';
+            case '/domains': return 'Domains';
+            case '/campaigns': return 'Campaigns';
+            case '/crm': return 'Contacts';
+            case '/automations': return 'Automations';
+            case '/inbox': return 'Inbox';
             case '/inbox/receipts': return 'Receipts';
+            case '/email-accounts': return 'Email Accounts';
             default: return 'FounderOS';
         }
     };
 
-    const handleQuickLaunch = () => {
+    const handleQuickActions = () => {
         openModal(
-            'Quick Launch Dispatch',
+            'Quick Actions',
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <button
                     onClick={() => openModal('Add Domain Infrastructure', <AddDomainForm onSuccess={() => { }} />)}
@@ -110,6 +112,7 @@ export const DashboardShell: React.FC<{ children: React.ReactNode }> = ({ childr
                     <div data-tour="domains-link"><SidebarItem icon={ShieldCheck} label="Domain Health" href="/domains" active={pathname === '/domains'} /></div>
                     <div data-tour="campaigns-link"><SidebarItem icon={Send} label="Campaigns" href="/campaigns" active={pathname === '/campaigns'} /></div>
                     <SidebarItem icon={Inbox} label="Unified Inbox" href="/inbox" active={pathname === '/inbox'} />
+                    <SidebarItem icon={Mail} label="Email Accounts" href="/email-accounts" active={pathname === '/email-accounts'} />
                     <SidebarItem icon={Workflow} label="Automations" href="/automations" active={pathname === '/automations'} />
                     <div data-tour="crm-link"><SidebarItem icon={Users} label="CRM" href="/crm" active={pathname === '/crm'} /></div>
                 </nav>
@@ -131,14 +134,14 @@ export const DashboardShell: React.FC<{ children: React.ReactNode }> = ({ childr
                 <header data-tour="dashboard-header" className="px-12 pt-12 flex justify-between items-end mb-8 sticky top-0 bg-[var(--ivory)]/80 backdrop-blur-md z-10 pb-4 border-b border-transparent">
                     <div>
                         <h2 className="text-4xl font-serif mb-1 tracking-tight">{getPageTitle()}</h2>
-                        <p className="text-xs font-sans text-zinc-500 tracking-tight">System Status: <span className="text-[var(--forest-green)] font-medium underline underline-offset-4 decoration-black/5">Fully Operational</span></p>
+                        <p className="text-xs font-sans text-zinc-500 tracking-tight">All systems online</p>
                     </div>
                     <button
                         data-tour="quick-launch"
-                        onClick={handleQuickLaunch}
-                        className="ink-button flex items-center gap-2 text-xs font-sans font-bold uppercase tracking-widest hover:gap-3 transition-all px-6 py-3"
+                        onClick={handleQuickActions}
+                        className="action-emphasized flex items-center gap-2"
                     >
-                        Quick Launch <ChevronRight size={14} />
+                        Quick Actions <ChevronRight size={14} />
                     </button>
                 </header>
 

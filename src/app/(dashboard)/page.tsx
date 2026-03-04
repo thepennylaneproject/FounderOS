@@ -6,27 +6,19 @@ import {
     Send,
     Workflow,
     Users,
-    Zap,
-    TrendingUp,
     Mail,
-    MoreVertical
 } from 'lucide-react';
 
 import Link from 'next/link';
 
-
-const StatCard: React.FC<{ label: string, value: string | number, trend: string, icon: any }> = ({ label, value, trend, icon: Icon }) => (
-    <div className="editorial-card group">
-        <div className="flex justify-between items-start mb-4">
-            <div className="p-2 rounded-full bg-[var(--ivory)] border border-black/5 group-hover:border-[var(--rose-gold)] transition-colors">
-                <Icon size={20} className="text-[var(--forest-green)]" />
-            </div>
-            <span className="text-[10px] font-sans font-bold tracking-widest uppercase text-zinc-400 flex items-center gap-1">
-                <TrendingUp size={12} /> {trend}
-            </span>
-        </div>
-        <h3 className="text-3xl font-serif mb-1">{value}</h3>
-        <p className="text-sm font-sans text-zinc-500 tracking-tight">{label}</p>
+/**
+ * Stat: Typeset list format (no decorative card borders)
+ * Just the essential information with ruled separator
+ */
+const Stat: React.FC<{ label: string, value: string | number }> = ({ label, value }) => (
+    <div className="border-t" style={{ borderColor: 'var(--border-content)', paddingTop: 'var(--space-md)' }}>
+        <p className="type-micro text-zinc-400">{label}</p>
+        <p className="type-headline mt-2">{value}</p>
     </div>
 );
 
@@ -93,95 +85,104 @@ export default function OverviewPage() {
 
     const briefingSentence = () => {
         if (brief.risk_count > 0) {
-            return `${brief.risk_count} high-risk item${brief.risk_count === 1 ? '' : 's'} need attention today. ${brief.now_count} in Now, ${brief.waiting_count} waiting, ${brief.needs_reply_count} need repl${brief.needs_reply_count === 1 ? 'y' : 'ies'}.`;
+            return `${brief.risk_count} high-risk item${brief.risk_count === 1 ? '' : 's'} need attention. ${brief.now_count} priority, ${brief.waiting_count} pending.`;
         }
         if (brief.now_count === 0 && brief.waiting_count === 0 && brief.needs_reply_count === 0) {
-            return `No fires. ${brief.needs_review_count} item${brief.needs_review_count === 1 ? '' : 's'} need review.`;
+            return `Inbox clear. ${brief.needs_review_count} item${brief.needs_review_count === 1 ? '' : 's'} for review.`;
         }
-        return `${brief.now_count} in Now, ${brief.waiting_count} waiting, ${brief.needs_reply_count} need repl${brief.needs_reply_count === 1 ? 'y' : 'ies'}.`;
+        return `${brief.now_count} priority, ${brief.waiting_count} pending, ${brief.needs_reply_count} need repl${brief.needs_reply_count === 1 ? 'y' : 'ies'}.`;
     };
 
     return (
-        <div className="space-y-16 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            {/* Daily Briefing */}
-            <section className="grid grid-cols-1 md:grid-cols-5 gap-6">
+        <div style={{ marginTop: 'var(--space-xl)' }}>
+            {/* Daily Briefing - ruled separators, no card borders */}
+            <section className="grid grid-cols-1 md:grid-cols-5 gap-xl mb-2xl">
                 {[
-                    { label: 'Now', value: brief.now_count, href: '/inbox?lane=now' },
-                    { label: 'Waiting', value: brief.waiting_count, href: '/inbox?lane=waiting' },
+                    { label: 'Priority', value: brief.now_count, href: '/inbox?lane=now' },
+                    { label: 'Pending', value: brief.waiting_count, href: '/inbox?lane=waiting' },
                     { label: 'Needs Reply', value: brief.needs_reply_count, href: '/inbox?category=needs_reply' },
                     { label: 'Receipts', value: brief.new_receipts_count, href: '/inbox/receipts' },
                     { label: 'Risk', value: brief.risk_count, href: '/inbox?risk=high' }
                 ].map((item) => (
-                    <Link key={item.label} href={item.href} className="editorial-card hover:border-[var(--forest-green)] transition-all">
-                        <p className="text-[10px] font-sans uppercase tracking-widest text-zinc-400">{item.label}</p>
-                        <p className="text-3xl font-serif mt-3">{item.value}</p>
+                    <Link 
+                        key={item.label} 
+                        href={item.href} 
+                        className="border-t hover:border-t-2 transition-all"
+                        style={{
+                            borderColor: 'var(--border-content)',
+                            paddingTop: 'var(--space-md)'
+                        }}
+                    >
+                        <p className="type-micro text-zinc-400">{item.label}</p>
+                        <p className="type-headline mt-2">{item.value}</p>
                     </Link>
                 ))}
             </section>
 
-            {/* Essential Stats */}
-            <section className="grid grid-cols-1 md:grid-cols-4 gap-x-12">
-                <StatCard label="Active Domains" value={stats.domains.toString().padStart(2, '0')} trend="+0" icon={ShieldCheck} />
-                <StatCard label="Total Contacts" value={stats.contacts} trend="+12%" icon={Users} />
-                <StatCard label="Active Workflows" value={stats.activeWorkflows} trend="Standard" icon={Workflow} />
-                <StatCard label="Customer Health" value={`${stats.avgHealth}%`} trend="Optimal" icon={Zap} />
+            {/* Essential Stats - typeset list format */}
+            <section className="grid grid-cols-1 md:grid-cols-4 gap-xl mb-2xl">
+                <Stat label="Active Domains" value={stats.domains.toString().padStart(2, '0')} />
+                <Stat label="Total Contacts" value={stats.contacts} />
+                <Stat label="Active Workflows" value={stats.activeWorkflows} />
+                <Stat label="Engagement Health" value={`${stats.avgHealth}%`} />
             </section>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-16">
-                {/* Recent Campaigns */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-2xl">
+                {/* Recent Campaigns - already editorial, preserve */}
                 <div className="lg:col-span-2">
-                    <div className="flex justify-between items-center mb-6 pb-2 border-b-2 border-[var(--ink)]">
-                        <h3 className="text-xl font-serif lowercase tracking-tighter">recent campaigns</h3>
-                        <span className="text-[10px] font-sans font-bold tracking-widest uppercase text-zinc-400 cursor-pointer hover:text-[var(--ink)] transition-colors">view all</span>
+                    <div className="flex justify-between items-center mb-lg pb-md" style={{ borderBottom: 'var(--border-emphasis)' }}>
+                        <h3 className="type-subhead lowercase">recent campaigns</h3>
+                        <Link href="/campaigns" className="action-quiet">
+                            view all
+                        </Link>
                     </div>
 
                     <div className="space-y-0 italic font-serif">
                         {campaigns.length > 0 ? campaigns.map((c, i) => (
-                            <div key={c.id} className="group flex items-center gap-8 py-6 border-b border-black/5 hover:bg-black/[0.02] transition-colors cursor-pointer px-4 -mx-4">
-                                <span className="text-xs font-sans not-italic font-bold text-zinc-300">{(i + 1).toString().padStart(2, '0')}</span>
+                            <div key={c.id} className="group flex items-center gap-8 border-b border-black/5 hover:bg-black/[0.01] transition-colors cursor-pointer" style={{ padding: 'var(--space-lg) var(--space-md)' }}>
+                                <span className="type-micro text-zinc-300 not-italic">{(i + 1).toString().padStart(2, '0')}</span>
                                 <div className="flex-1 min-w-0">
-                                    <h4 className="text-lg leading-tight group-hover:translate-x-1 transition-transform">{c.name}</h4>
-                                    <p className="text-sm font-sans not-italic text-zinc-500 mt-1">{c.type} — {c.status}</p>
+                                    <h4 className="type-subhead leading-tight group-hover:translate-x-1 transition-transform">{c.name}</h4>
+                                    <p className="type-label not-italic text-zinc-500 mt-1">{c.type} — {c.status}</p>
                                 </div>
                                 <Mail size={16} className="text-zinc-200 group-hover:text-[var(--rose-gold)] transition-colors" />
                             </div>
                         )) : (
-                            <p className="text-sm font-sans text-zinc-400 py-12 text-center underline underline-offset-4 decoration-black/5">No recent campaigns to display.</p>
+                            <p className="type-body text-zinc-400 text-center" style={{ padding: 'var(--space-xl) 0' }}>No recent campaigns to display.</p>
                         )}
                     </div>
                 </div>
 
                 {/* Quick Actions / Status */}
-                <div className="space-y-12">
-                    <div className="p-8 bg-[var(--forest-green)] text-[var(--ivory)] rounded-sm relative overflow-hidden group">
-                        <div className="relative z-10">
-                            <h3 className="text-2xl font-serif mb-4 leading-tight">Today&apos;s Inbox Brief</h3>
-                            <p className="text-xs font-sans opacity-70 mb-8 leading-relaxed">
-                                {briefingSentence()}
-                            </p>
-                            <Link
-                                href="/inbox"
-                                className="bg-[var(--ivory)] text-[var(--forest-green)] px-4 py-2 text-xs font-sans font-bold uppercase tracking-widest hover:bg-[var(--rose-gold-muted)] transition-colors"
-                            >
-                                Open Inbox
-                            </Link>
-                        </div>
-                        <TrendingUp className="absolute -bottom-8 -right-8 w-48 h-48 opacity-10 group-hover:scale-110 transition-transform duration-700" />
+                <div className="space-y-xl">
+                    {/* Inbox Brief - ruled box with emphasis border instead of filled background */}
+                    <div 
+                        className="border-2 border-[var(--ink)]"
+                        style={{ padding: 'var(--space-lg)' }}
+                    >
+                        <h3 className="type-subhead mb-md">Inbox Brief</h3>
+                        <p className="type-body text-zinc-600 mb-lg">
+                            {briefingSentence()}
+                        </p>
+                        <Link
+                            href="/inbox"
+                            className="action-emphasized block text-center"
+                        >
+                            Open Inbox
+                        </Link>
                     </div>
 
-                    <div className="editorial-card">
-                        <div className="flex justify-between items-center mb-4">
-                            <h3 className="font-serif italic text-lg lowercase">active automations</h3>
-                            <MoreVertical size={16} className="text-zinc-400 cursor-pointer" />
-                        </div>
-                        <div className="space-y-4">
+                    {/* Active Automations - whitespace, no card treatment */}
+                    <div className="border-t" style={{ borderColor: 'var(--border-content)', paddingTop: 'var(--space-lg)' }}>
+                        <h3 className="type-subhead lowercase mb-md">active automations</h3>
+                        <div className="space-y-sm">
                             {workflows.length > 0 ? workflows.map(w => (
-                                <div key={w.id} className="flex items-center gap-3">
-                                    <div className={`w-2 h-2 rounded-full ${w.status === 'active' ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]' : 'bg-zinc-300'}`} />
-                                    <p className="text-sm font-sans font-medium text-zinc-600 truncate flex-1">{w.name}</p>
+                                <div key={w.id} className="flex items-center gap-sm">
+                                    <div className={`w-2 h-2 rounded-full ${w.status === 'active' ? 'bg-green-500' : 'bg-zinc-300'}`} />
+                                    <p className="type-label text-zinc-600 truncate flex-1">{w.name}</p>
                                 </div>
                             )) : (
-                                <p className="text-xs font-sans text-zinc-400 italic">No active automations in flight.</p>
+                                <p className="type-label text-zinc-400 italic">No active automations.</p>
                             )}
                         </div>
                     </div>

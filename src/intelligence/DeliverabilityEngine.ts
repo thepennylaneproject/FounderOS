@@ -15,10 +15,10 @@ export interface DomainDeliverability {
 }
 
 export async function calculateDeliverability(domain?: string): Promise<DomainDeliverability[]> {
-    // Get domains
-    let domainsQuery = supabase.from('domains').select('*');
+    // Get domains from email_domains table (not 'domains')
+    let domainsQuery = supabase.from('email_domains').select('*');
     if (domain) {
-        domainsQuery = domainsQuery.eq('name', domain);
+        domainsQuery = domainsQuery.eq('domain', domain); // Column name is 'domain' not 'name'
     }
     
     const { data: domains, error: domainsError } = await domainsQuery;
@@ -42,11 +42,11 @@ export async function calculateDeliverability(domain?: string): Promise<DomainDe
 
     return (domains || []).map((row) => {
         const hasSPF = !!row.spf_record;
-        const hasDKIM = !!row.dkim_key;
+        const hasDKIM = !!row.dkim_private_key; // Fixed: use dkim_private_key
         const hasDMARC = !!row.dmarc_policy;
 
         // Filter logs for this domain
-        const domainLogs = logs.filter(l => l.sender?.endsWith(`@${row.name}`));
+        const domainLogs = logs.filter(l => l.sender?.endsWith(`@${row.domain}`)); // Fixed: use row.domain
         const weeklyLogs = domainLogs.filter(l => new Date(l.created_at) >= sevenDaysAgo);
         const monthlyBounces = domainLogs.filter(l => l.status === 'bounced').length;
 
@@ -62,15 +62,15 @@ export async function calculateDeliverability(domain?: string): Promise<DomainDe
 
         if (!hasSPF) {
             score -= 25;
-            recommendations.push('Add SPF record to improve authentication');
+            recommendations.push('Missing SPF record. Click to expand SPF section above for setup instructions.');
         }
         if (!hasDKIM) {
             score -= 25;
-            recommendations.push('Configure DKIM signing for email integrity');
+            recommendations.push('Missing DKIM authentication. Complete SendGrid domain authentication to add DKIM CNAME records.');
         }
         if (!hasDMARC) {
             score -= 15;
-            recommendations.push('Implement DMARC policy for domain protection');
+            recommendations.push('Missing DMARC policy. Click to expand DMARC section above for setup instructions.');
         }
         if (bounceRate > 5) {
             score -= 20;
@@ -90,12 +90,18 @@ export async function calculateDeliverability(domain?: string): Promise<DomainDe
             score >= 80 ? 'low' :
                 score >= 50 ? 'medium' : 'high';
 
+        // Check if domain was recently added (within 48 hours)
+        const createdAt = new Date(row.created_at);
+        const hoursSinceCreated = (Date.now() - createdAt.getTime()) / (1000 * 60 * 60);
+        
         if (recommendations.length === 0) {
-            recommendations.push('All systems nominal');
+            recommendations.push('All systems nominal - your domain is fully configured');
+        } else if (hoursSinceCreated < 48 && (!hasSPF || !hasDKIM || !hasDMARC)) {
+            recommendations.unshift('Note: DNS changes can take 24-48 hours to propagate worldwide.');
         }
 
         return {
-            domain: row.name,
+            domain: row.domain, // Fixed: use row.domain
             hasSPF,
             hasDKIM,
             hasDMARC,

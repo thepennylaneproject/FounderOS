@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import supabase from '@/lib/supabase';
 
 export const dynamic = 'force-dynamic';
 
 // GET /api/emails/drafts - List all drafts
 export async function GET(req: NextRequest) {
   try {
-    const supabase = await createClient();
-    
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -32,8 +30,6 @@ export async function GET(req: NextRequest) {
 // POST /api/emails/drafts - Create or update draft
 export async function POST(req: NextRequest) {
   try {
-    const supabase = await createClient();
-    
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -114,8 +110,6 @@ export async function POST(req: NextRequest) {
 // DELETE /api/emails/drafts/:id
 export async function DELETE(req: NextRequest) {
   try {
-    const supabase = await createClient();
-    
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
