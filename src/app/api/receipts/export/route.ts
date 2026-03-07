@@ -1,15 +1,13 @@
 import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
-import supabase from '@/lib/supabase';
+import { query } from '@/lib/db';
 
 export async function GET() {
     try {
-        const { data, error } = await supabase
-            .from('receipts')
-            .select('*')
-            .order('date', { ascending: false });
-
-        if (error) throw error;
+        const result = await query(
+            'SELECT * FROM receipts ORDER BY date DESC'
+        );
+        const data = result.rows;
 
         const headers = [
             'vendor_name',
@@ -22,7 +20,7 @@ export async function GET() {
             'thread_id'
         ];
 
-        const rows = (data || []).map((r: any) => [
+        const rows = data.map((r: any) => [
             r.vendor_name,
             r.amount,
             r.currency,
@@ -33,7 +31,7 @@ export async function GET() {
             r.thread_id
         ]);
 
-        const csv = [headers.join(','), ...rows.map((row) => row.map(csvEscape).join(','))].join('\n');
+        const csv = [headers.join(','), ...rows.map((row: any[]) => row.map(csvEscape).join(','))].join('\n');
 
         return new NextResponse(csv, {
             headers: {

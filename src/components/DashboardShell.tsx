@@ -14,6 +14,7 @@ import {
     ChevronRight,
     Plus,
     Mail,
+    FileCode2,
 } from 'lucide-react';
 import { useUI } from '@/context/UIContext';
 import { AddContactForm } from '@/components/crm/AddContactForm';
@@ -62,6 +63,7 @@ export const DashboardShell: React.FC<{ children: React.ReactNode }> = ({ childr
             case '/inbox': return 'Inbox';
             case '/inbox/receipts': return 'Receipts';
             case '/email-accounts': return 'Email Accounts';
+            case '/view-source': return 'View Source';
             default: return 'FounderOS';
         }
     };
@@ -115,6 +117,7 @@ export const DashboardShell: React.FC<{ children: React.ReactNode }> = ({ childr
                     <SidebarItem icon={Mail} label="Email Accounts" href="/email-accounts" active={pathname === '/email-accounts'} />
                     <SidebarItem icon={Workflow} label="Automations" href="/automations" active={pathname === '/automations'} />
                     <div data-tour="crm-link"><SidebarItem icon={Users} label="CRM" href="/crm" active={pathname === '/crm'} /></div>
+                    <SidebarItem icon={FileCode2} label="View Source" href="/view-source" active={pathname === '/view-source'} />
                 </nav>
 
                 <div className="mt-auto p-6 border-t border-black/5">
