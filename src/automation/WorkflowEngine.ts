@@ -61,23 +61,56 @@ export class WorkflowAutomation {
 
         for (const wf of workflows) {
             console.log(`Executing workflow: ${wf.name}`);
-            const actions = typeof wf.config === 'string'
-                ? JSON.parse(wf.config)
-                : (wf.config as WorkflowAction[]);
+
+            // Parse config safely with error handling
+            let actions: WorkflowAction[] = [];
+            try {
+                actions = typeof wf.config === 'string'
+                    ? JSON.parse(wf.config)
+                    : (wf.config as WorkflowAction[]);
+            } catch (parseErr) {
+                console.error(`Failed to parse workflow config for ${wf.name}:`, parseErr);
+                // Log the parse error and skip this workflow
+                try {
+                    await eventLoggingEngine.logWorkflowExecution(
+                        wf.id,
+                        event,
+                        context.contactId,
+                        'config-parse',
+                        'failed',
+                        0,
+                        { workflow_name: wf.name },
+                        `Config parse error: ${parseErr instanceof Error ? parseErr.message : String(parseErr)}`
+                    );
+                } catch (logErr) {
+                    console.error('Failed to log workflow parse error:', logErr);
+                }
+                continue; // Skip to next workflow
+            }
 
             let executionResult: 'success' | 'failed' | 'partial' = 'success';
             let actionErrors: string[] = [];
             let totalActions = 0;
+            let successCount = 0;
 
             for (const action of actions) {
                 try {
                     totalActions++;
                     await this.executeAction(action, context);
+                    successCount++;
                 } catch (err) {
-                    executionResult = 'failed';
                     actionErrors.push(err instanceof Error ? err.message : String(err));
                     console.error(`Action ${action.action} failed:`, err);
                 }
+            }
+
+            // Determine result: success only if all succeeded, partial if some succeeded
+            if (actionErrors.length === 0) {
+                executionResult = 'success';
+            } else if (successCount > 0) {
+                executionResult = 'partial';
+            } else {
+                executionResult = 'failed';
             }
 
             if (totalActions > 0) {

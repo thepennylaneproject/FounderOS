@@ -9,14 +9,37 @@ export async function getRules(): Promise<Rule[]> {
 
     if (error) throw error;
 
-    return (data || []).map((r: any) => ({
-        id: r.id,
-        enabled: r.enabled,
-        priority: r.priority,
-        match: typeof r.match === 'string' ? JSON.parse(r.match) : (r.match || {}),
-        action: typeof r.action === 'string' ? JSON.parse(r.action) : (r.action || {}),
-        reason_template: r.reason_template
-    }));
+    return (data || []).map((r: any) => {
+        let match = {};
+        let action = {};
+
+        // Parse match safely
+        try {
+            match = typeof r.match === 'string' ? JSON.parse(r.match) : (r.match || {});
+        } catch (parseErr) {
+            console.error(`Failed to parse rule match for rule ${r.id}:`, parseErr);
+            // Use empty object as fallback
+            match = {};
+        }
+
+        // Parse action safely
+        try {
+            action = typeof r.action === 'string' ? JSON.parse(r.action) : (r.action || {});
+        } catch (parseErr) {
+            console.error(`Failed to parse rule action for rule ${r.id}:`, parseErr);
+            // Use empty object as fallback
+            action = {};
+        }
+
+        return {
+            id: r.id,
+            enabled: r.enabled,
+            priority: r.priority,
+            match,
+            action,
+            reason_template: r.reason_template
+        };
+    });
 }
 
 export async function getThreadMessages(threadId: string): Promise<EmailMessage[]> {

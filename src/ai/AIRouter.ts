@@ -23,6 +23,7 @@ import {
 } from './types';
 import { getProvider, getAllProviders, BaseProvider } from './providers';
 import { getBrandVoiceService, BrandVoiceProfile } from './BrandVoice';
+import { query } from '@/lib/db';
 
 // Import providers to register them
 import './providers/openai';
@@ -77,7 +78,6 @@ interface ModelSelection {
  */
 export class AIRouter {
   private config: RouterConfig;
-  private usageLog: UsageRecord[] = []; // In-memory for now, will persist to DB
 
   constructor(config: Partial<RouterConfig> = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config };
@@ -411,10 +411,31 @@ export class AIRouter {
    * Log usage for analytics and billing
    */
   private async logUsage(record: UsageRecord): Promise<void> {
-    this.usageLog.push(record);
-
-    // TODO: Persist to database
-    // await query('INSERT INTO ai_usage_logs (...) VALUES (...)', [...]);
+    // Persist to database (no longer storing in memory)
+    try {
+      await query(
+        `INSERT INTO ai_usage_logs
+         (id, user_id, request_id, provider, model, task_type, input_tokens, output_tokens, cost, latency_ms, success, created_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+        [
+          record.id,
+          record.userId,
+          record.requestId,
+          record.provider,
+          record.model,
+          record.taskType,
+          record.inputTokens,
+          record.outputTokens,
+          record.cost,
+          record.latencyMs,
+          record.success,
+          record.createdAt
+        ]
+      );
+    } catch (error) {
+      console.error('Failed to log AI usage to database:', error);
+      // Don't throw - logging failure shouldn't break the request
+    }
   }
 
   /**
@@ -443,25 +464,41 @@ export class AIRouter {
         break;
     }
 
-    const records = this.usageLog.filter(
-      r => r.userId === userId && r.createdAt >= periodStart
-    );
+    try {
+      // Query database for usage records within the period
+      const res = await query(
+        `SELECT provider, COUNT(*) as request_count, SUM(cost) as total_cost
+         FROM ai_usage_logs
+         WHERE user_id = $1 AND created_at >= $2 AND success = true
+         GROUP BY provider`,
+        [userId, periodStart]
+      );
 
-    const byProvider: Record<string, { requests: number; cost: number }> = {};
+      const byProvider: Record<string, { requests: number; cost: number }> = {};
+      let totalCost = 0;
 
-    for (const record of records) {
-      if (!byProvider[record.provider]) {
-        byProvider[record.provider] = { requests: 0, cost: 0 };
+      for (const row of res.rows) {
+        byProvider[row.provider] = {
+          requests: parseInt(row.request_count, 10),
+          cost: parseFloat(row.total_cost) || 0
+        };
+        totalCost += parseFloat(row.total_cost) || 0;
       }
-      byProvider[record.provider].requests++;
-      byProvider[record.provider].cost += record.cost;
-    }
 
-    return {
-      totalRequests: records.length,
-      totalCost: records.reduce((sum, r) => sum + r.cost, 0),
-      byProvider,
-    };
+      return {
+        totalRequests: res.rows.reduce((sum, r) => sum + parseInt(r.request_count, 10), 0),
+        totalCost,
+        byProvider,
+      };
+    } catch (error) {
+      console.error('Failed to fetch usage summary from database:', error);
+      // Return empty summary if database query fails
+      return {
+        totalRequests: 0,
+        totalCost: 0,
+        byProvider: {},
+      };
+    }
   }
 
   /**

@@ -1,17 +1,20 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { modernCRM } from '@/crm/CustomerRelationshipEngine';
+import { getAuthContext } from '@/lib/apiAuth';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
     try {
-        const contacts = await modernCRM.getAllContacts();
+        const auth = getAuthContext(request);
+        const contacts = await modernCRM.getAllContacts(auth.organizationId);
         return NextResponse.json(contacts);
     } catch (error: any) {
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
     try {
+        const auth = getAuthContext(request);
         const body = await request.json();
 
         // Validate required fields
@@ -29,8 +32,8 @@ export async function POST(request: Request) {
             );
         }
 
-        const id = await modernCRM.createContact(body);
-        const contact = await modernCRM.getContact(id);
+        const id = await modernCRM.createContact(body, auth.organizationId, auth.userId);
+        const contact = await modernCRM.getContact(id, auth.organizationId);
         return NextResponse.json(contact);
     } catch (error: any) {
         // Handle unique constraint violations (duplicate email)

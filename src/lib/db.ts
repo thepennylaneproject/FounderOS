@@ -8,12 +8,12 @@ if (!connectionString) {
 }
 
 // Create a new pool using the connection string
-// The "Cloudflare fix" is usually setting rejectUnauthorized: false for SSL connections
-// This is required when connecting to Supabase via transaction pooler or certain proxies
+// For production, enforce SSL certificate verification
 export const pool = new Pool({
     connectionString,
     ssl: process.env.NODE_ENV === 'production' || connectionString?.includes('supa') ? {
-        rejectUnauthorized: false
+        rejectUnauthorized: true,
+        ca: process.env.DATABASE_SSL_CA ? process.env.DATABASE_SSL_CA.replace(/\\n/g, '\n') : undefined
     } : undefined,
     // Add simple query timeout
     query_timeout: 10000,

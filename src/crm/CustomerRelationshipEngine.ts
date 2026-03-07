@@ -6,11 +6,12 @@ export interface Contact { id: string; email: string; first_name?: string; last_
 export interface LeadScore { score: number; reasoning: string; nextBestAction: string; }
 
 export class ModernCRM {
-    async scoreLead(contactId: string): Promise<LeadScore> {
+    async scoreLead(contactId: string, organizationId: string): Promise<LeadScore> {
         const { data: logs, error } = await supabase
             .from('email_logs')
             .select('status')
-            .eq('contact_id', contactId);
+            .eq('contact_id', contactId)
+            .eq('organization_id', organizationId);
 
         if (error) throw error;
 
@@ -34,7 +35,8 @@ export class ModernCRM {
         await supabase
             .from('contacts')
             .update({ health_score: score })
-            .eq('id', contactId);
+            .eq('id', contactId)
+            .eq('organization_id', organizationId);
 
         return {
             score,
@@ -43,11 +45,12 @@ export class ModernCRM {
         };
     }
 
-    async enrichContact(id: string): Promise<void> {
+    async enrichContact(id: string, organizationId: string): Promise<void> {
         const { data, error } = await supabase
             .from('contacts')
             .select('email')
             .eq('id', id)
+            .eq('organization_id', organizationId)
             .single();
 
         if (error || !data?.email) return;
@@ -66,15 +69,17 @@ export class ModernCRM {
                 tags: mockEnrichment.tags,
                 updated_at: new Date().toISOString()
             })
-            .eq('id', id);
+            .eq('id', id)
+            .eq('organization_id', organizationId);
     }
 
-    async createContact(contact: Partial<Contact>): Promise<string> {
-        // Check for existing contact with this email
+    async createContact(contact: Partial<Contact>, organizationId: string, userId: string): Promise<string> {
+        // Check for existing contact with this email in this organization
         const { data: existing } = await supabase
             .from('contacts')
             .select('id')
             .eq('email', contact.email)
+            .eq('organization_id', organizationId)
             .maybeSingle();
 
         if (existing) {
@@ -84,6 +89,8 @@ export class ModernCRM {
         const { data, error } = await supabase
             .from('contacts')
             .insert({
+                organization_id: organizationId,
+                created_by: userId,
                 email: contact.email,
                 first_name: contact.first_name,
                 last_name: contact.last_name,
@@ -97,27 +104,29 @@ export class ModernCRM {
         if (error) throw error;
         const id = data.id;
 
-        await workflowAutomation.trigger('contact.created', { contactId: id });
-        await this.enrichContact(id);
+        await workflowAutomation.trigger('contact.created', { contactId: id, organizationId });
+        await this.enrichContact(id, organizationId);
         return id;
     }
 
 
-    async getContact(id: string): Promise<Contact> {
+    async getContact(id: string, organizationId: string): Promise<Contact> {
         const { data, error } = await supabase
             .from('contacts')
             .select('*')
             .eq('id', id)
+            .eq('organization_id', organizationId)
             .single();
 
         if (error) throw error;
         return data;
     }
 
-    async getAllContacts() {
+    async getAllContacts(organizationId: string) {
         const { data, error } = await supabase
             .from('contacts')
             .select('*')
+            .eq('organization_id', organizationId)
             .order('created_at', { ascending: false });
 
         if (error) throw error;

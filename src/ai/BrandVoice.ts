@@ -7,6 +7,7 @@
 
 import { v4 as uuid } from 'uuid';
 import { getRouter } from './AIRouter';
+import { query } from '@/lib/db';
 
 /**
  * Brand voice profile stored for a user/organization
@@ -183,8 +184,6 @@ export const INDUSTRY_PRESETS: Record<string, Partial<VoiceAttributes>> = {
  * Brand Voice Analysis Service
  */
 export class BrandVoiceService {
-  private profiles: Map<string, BrandVoiceProfile> = new Map(); // In-memory, will persist to DB
-
   /**
    * Analyze sample content to suggest voice attributes
    */
@@ -358,10 +357,37 @@ Respond in this exact JSON format:
       isActive: true,
     };
 
-    this.profiles.set(profile.id, profile);
-
-    // TODO: Persist to database
-    // await query('INSERT INTO brand_voice_profiles (...) VALUES (...)', [...]);
+    // Persist to database
+    try {
+      await query(
+        `INSERT INTO brand_voice_profiles
+         (id, user_id, name, description, tone, personality_traits, values_and_mission,
+          target_audience, language_guidelines, do_list, dont_list, examples,
+          is_default, created_by, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`,
+        [
+          profile.id,
+          profile.userId,
+          profile.name,
+          `${profile.brandName} - ${profile.industry}`,
+          this.describeAttributes(profile.attributes),
+          JSON.stringify(profile.toneKeywords),
+          profile.missionStatement || null,
+          profile.targetAudience,
+          JSON.stringify(profile.attributes),
+          JSON.stringify(profile.exampleContent),
+          JSON.stringify(profile.antiExamples),
+          JSON.stringify(profile.exampleContent),
+          profile.isActive,
+          profile.userId,
+          profile.createdAt,
+          profile.updatedAt
+        ]
+      );
+    } catch (error) {
+      console.error('Failed to persist brand voice profile to database:', error);
+      // Don't throw - still return profile even if persistence fails
+    }
 
     return profile;
   }
@@ -369,43 +395,86 @@ Respond in this exact JSON format:
   /**
    * Get user's active brand voice profile
    */
-  getActiveProfile(userId: string): BrandVoiceProfile | undefined {
-    for (const profile of this.profiles.values()) {
-      if (profile.userId === userId && profile.isActive) {
-        return profile;
-      }
+  async getActiveProfile(userId: string): Promise<BrandVoiceProfile | undefined> {
+    try {
+      const res = await query(
+        `SELECT * FROM brand_voice_profiles WHERE user_id = $1 AND is_default = true LIMIT 1`,
+        [userId]
+      );
+      return res.rows[0] || undefined;
+    } catch (error) {
+      console.error('Failed to fetch active brand voice profile:', error);
+      return undefined;
     }
-    return undefined;
   }
 
   /**
    * Get all profiles for a user
    */
-  getUserProfiles(userId: string): BrandVoiceProfile[] {
-    return Array.from(this.profiles.values()).filter(p => p.userId === userId);
+  async getUserProfiles(userId: string): Promise<BrandVoiceProfile[]> {
+    try {
+      const res = await query(
+        `SELECT * FROM brand_voice_profiles WHERE user_id = $1 ORDER BY created_at DESC`,
+        [userId]
+      );
+      return res.rows || [];
+    } catch (error) {
+      console.error('Failed to fetch user brand voice profiles:', error);
+      return [];
+    }
   }
 
   /**
    * Update a profile
    */
   async updateProfile(profileId: string, updates: Partial<BrandVoiceProfile>): Promise<BrandVoiceProfile | undefined> {
-    const existing = this.profiles.get(profileId);
-    if (!existing) return undefined;
-
-    const updated = {
-      ...existing,
-      ...updates,
-      updatedAt: new Date(),
-    };
-
-    this.profiles.set(profileId, updated);
-    return updated;
+    try {
+      const res = await query(
+        `UPDATE brand_voice_profiles
+         SET tone = $1, language_guidelines = $2, do_list = $3, dont_list = $4, updated_at = $5
+         WHERE id = $6
+         RETURNING *`,
+        [
+          updates.toneKeywords ? JSON.stringify(updates.toneKeywords) : null,
+          updates.attributes ? JSON.stringify(updates.attributes) : null,
+          updates.exampleContent ? JSON.stringify(updates.exampleContent) : null,
+          updates.antiExamples ? JSON.stringify(updates.antiExamples) : null,
+          new Date(),
+          profileId
+        ]
+      );
+      return res.rows[0] || undefined;
+    } catch (error) {
+      console.error('Failed to update brand voice profile:', error);
+      return undefined;
+    }
   }
 
   /**
    * Set a profile as active (deactivates others for user)
    */
   async setActiveProfile(userId: string, profileId: string): Promise<void> {
+    try {
+      // Deactivate all other profiles for this user
+      await query(
+        `UPDATE brand_voice_profiles SET is_default = false WHERE user_id = $1 AND id != $2`,
+        [userId, profileId]
+      );
+
+      // Activate this profile
+      await query(
+        `UPDATE brand_voice_profiles SET is_default = true WHERE id = $1 AND user_id = $2`,
+        [profileId, userId]
+      );
+    } catch (error) {
+      console.error('Failed to set active brand voice profile:', error);
+    }
+  }
+
+  /**
+   * OLD METHOD - Remove after migration (kept for reference)
+   */
+  async _legacySetActiveProfile(userId: string, profileId: string): Promise<void> {
     for (const profile of this.profiles.values()) {
       if (profile.userId === userId) {
         profile.isActive = profile.id === profileId;
@@ -417,7 +486,16 @@ Respond in this exact JSON format:
    * Delete a profile
    */
   async deleteProfile(profileId: string): Promise<boolean> {
-    return this.profiles.delete(profileId);
+    try {
+      const res = await query(
+        `DELETE FROM brand_voice_profiles WHERE id = $1`,
+        [profileId]
+      );
+      return (res.rowCount || 0) > 0;
+    } catch (error) {
+      console.error('Failed to delete brand voice profile:', error);
+      return false;
+    }
   }
 
   /**
