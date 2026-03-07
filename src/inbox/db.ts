@@ -1,15 +1,12 @@
-import supabase from '@/lib/supabase';
+import { query } from '@/lib/db';
 import { Rule, EmailMessage } from './types';
 
 export async function getRules(): Promise<Rule[]> {
-    const { data, error } = await supabase
-        .from('rules')
-        .select('*')
-        .order('priority', { ascending: true });
+    const result = await query(
+        'SELECT * FROM rules ORDER BY priority ASC'
+    );
 
-    if (error) throw error;
-
-    return (data || []).map((r: any) => ({
+    return (result.rows || []).map((r: any) => ({
         id: r.id,
         enabled: r.enabled,
         priority: r.priority,
@@ -20,26 +17,18 @@ export async function getRules(): Promise<Rule[]> {
 }
 
 export async function getThreadMessages(threadId: string): Promise<EmailMessage[]> {
-    const { data, error } = await supabase
-        .from('email_messages')
-        .select('*')
-        .eq('thread_id', threadId)
-        .order('received_at', { ascending: true });
-
-    if (error) throw error;
-    return (data || []).map(normalizeMessage);
+    const result = await query(
+        'SELECT * FROM email_messages WHERE thread_id = $1 ORDER BY received_at ASC',
+        [threadId]
+    );
+    return (result.rows || []).map(normalizeMessage);
 }
 
 export async function getAllThreadIds(): Promise<string[]> {
-    const { data, error } = await supabase
-        .from('email_messages')
-        .select('thread_id');
-
-    if (error) throw error;
-    
-    // Get unique thread ids
-    const uniqueIds = [...new Set((data || []).map((r: any) => r.thread_id))];
-    return uniqueIds;
+    const result = await query(
+        'SELECT DISTINCT thread_id FROM email_messages'
+    );
+    return (result.rows || []).map((r: any) => r.thread_id);
 }
 
 function normalizeMessage(row: any): EmailMessage {
