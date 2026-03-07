@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
-import { query } from '@/lib/db';
+import supabase from '@/lib/supabase';
 
 export async function GET(request: Request) {
     try {
@@ -8,25 +8,19 @@ export async function GET(request: Request) {
         const category = searchParams.get('category');
         const status = searchParams.get('status');
 
-        const params: any[] = [];
-        const conditions: string[] = [];
+        let query = supabase.from('receipts').select('*');
 
         if (category) {
-            params.push(category);
-            conditions.push(`category = $${params.length}`);
+            query = query.eq('category', category);
         }
         if (status) {
-            params.push(status);
-            conditions.push(`payment_status = $${params.length}`);
+            query = query.eq('payment_status', status);
         }
 
-        const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
-        const result = await query(
-            `SELECT * FROM receipts ${where} ORDER BY date DESC`,
-            params
-        );
+        const { data, error } = await query.order('date', { ascending: false });
 
-        return NextResponse.json(result.rows);
+        if (error) throw error;
+        return NextResponse.json(data || []);
     } catch (error: any) {
         console.error('Error fetching receipts:', error);
         return NextResponse.json({ error: error.message }, { status: 500 });
