@@ -10,7 +10,7 @@
     "test:inbox": "node scripts/test-inbox.js"
   },
   "dependencies": {
-    "@supabase/auth-helpers-nextjs": "^0.15.0",
+    "@supabase/auth-helpers-nextjs": "^0.8.7",
     "@supabase/supabase-js": "^2.90.1",
     "clsx": "^2.1.0",
     "dotenv": "^17.2.3",

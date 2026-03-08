@@ -1,4 +1,5 @@
 // src/revenue/RevenueOps.ts
+// TODO: Connect RevenueOps to Stripe and database — architecture defined, implementation pending
 
 interface FinancialMetrics {
     mrr: number;
@@ -95,3 +96,5 @@ class RevenueOperations {
     private async createInvoicePDF(invoice: any): Promise<any> { return {}; }
     private async schedulePaymentReminders(invoice: any): Promise<void> { }
 }
+
+export default RevenueOperations;

@@ -1,74 +1,72 @@
-# FounderOS - Domain & Marketing Command Center
+# FounderOS — Founder Operating System
 
-FounderOS is an all-in-one platform for managing domains, email marketing, and project management.
+> Part of <a href="https://thepennylaneproject.org">The Penny Lane Project</a> — technology that serves the individual.
 
-## Project Structure
+## What This Is
 
-- `src/app`: Next.js App Router (Frontend + API Routes)
-- `src/components`: UI Components
-- `src/domain`: Business logic and types (CRM, Automation, etc.)
-- `database/init.sql`: Initial database schema
-- `docker-compose.yml`: Multi-container setup (Next.js, Postgres, Redis, Mailserver)
+FounderOS is an all-in-one command center for solo founders and small teams. It combines intelligent email management, CRM, campaign execution, domain management, and revenue operations into a single platform — replacing the scattered stack of tools most founders are forced to stitch together.
 
-## Getting Started
+## Current Status
 
-### Prerequisites
+**Alpha** — The unified inbox, contact triage, AI-assisted email drafting, and campaign engine work end-to-end. Active development is focused on the intelligence layer (strategic briefs, momentum scoring) and the revenue operations module.
 
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed on your machine.
+## Technical Overview
 
-### Running the Project
+- **Frontend:** Next.js 14 (App Router), React 18, Tailwind CSS
+- **Backend:** Next.js API Routes (serverless-compatible), Node.js background jobs
+- **Database:** PostgreSQL (via Supabase); local Docker Postgres for development
+- **Auth:** Supabase Auth with server-side session management
+- **AI:** Multi-provider routing (OpenAI, Anthropic, Mistral, Google, DeepSeek)
+- **Email:** IMAP/SMTP via IMAPFlow + Nodemailer; unified inbox with AI classification
+- **Deployment:** Docker Compose (self-hosted) or Vercel/cloud-hosted via Supabase
 
-1. **Start the environment:**
-   ```bash
-   docker compose up --build
-   ```
+## Architecture
 
-2. **Access the Dashboard:**
-   Open [http://localhost:3000](http://localhost:3000) in your browser.
-
-3. **Check Service Logs:**
-   ```bash
-   docker compose logs -f
-   ```
+JAMstack-style Next.js monorepo with an App Router frontend and co-located API routes. Business logic lives in domain modules under `src/` (intelligence, campaigns, CRM, revenue). Background jobs run as cron-triggered API routes. Docker Compose wires together Next.js, PostgreSQL, Redis, and a mail server for local development.
 
 ## Development
 
-### Adding Email Domains
-The mail server is configured via `docker-compose.yml`. To add an email user, you can run:
-```bash
-docker exec -it founderos-mail setup email add admin@founderos.local Ss90902eight
-```
+### Prerequisites
 
-### Database Access
-You can connect to the Postgres database on port `5432` with:
-- **User:** `founderos`
-- **Password:** `changeme123` (or as set in `.env`)
-- **Database:** `founderos`
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+- Node.js 18+
+- Copy `.env.example` to `.env.local` and fill in required values
 
-## Unified Inbox MVP
+### Start the environment
 
-### Run the app
 ```bash
 docker compose up --build
 ```
 
-### Seed inbox data
+Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+### Run without Docker
+
 ```bash
-DATABASE_URL=postgresql://founderos:changeme123@localhost:5432/founderos node scripts/seed-inbox.js
-curl -X POST http://localhost:3000/api/inbox/reclassify
+npm install
+npm run dev
 ```
 
-### Run inbox MVP tests
+### Run inbox tests
+
 ```bash
-API_BASE=http://localhost:3000 DATABASE_URL=postgresql://founderos:changeme123@localhost:5432/founderos npm run test:inbox
-```
-Or:
-```bash
+npm run test:inbox
+# or
 make test-inbox
 ```
 
-### Where to test
-- Inbox: http://localhost:3000/inbox
-- Receipts: http://localhost:3000/inbox/receipts
-- Automations: http://localhost:3000/automations
-- Dashboard: http://localhost:3000/
+### Key routes
+
+| Route | Description |
+|---|---|
+| `/` | Dashboard |
+| `/inbox` | Unified inbox |
+| `/inbox/receipts` | Receipt extraction |
+| `/crm` | Contact CRM |
+| `/campaigns` | Email campaigns |
+| `/automations` | Workflow automation |
+| `/domains` | Domain management |
+
+## License
+
+All rights reserved — © The Penny Lane Project

@@ -1,4 +1,4 @@
-// src/revenue/integrations/IntergrationHub.ts
+// src/revenue/integrations/IntegrationHub.ts
 
 class StripeIntegration { async sync() { } }
 class GitHubIntegration { async sync() { } }
@@ -32,7 +32,7 @@ class IntegrationManager {
         twitter: new TwitterIntegration()
     };
 
-    // Webhook system
+    // TODO: Define typed interfaces for each webhook payload (StripeWebhookPayload, GitHubWebhookPayload, FormSubmissionPayload)
     async handleWebhook(source: string, data: any): Promise<void> {
         switch (source) {
             case 'stripe':
