@@ -19,10 +19,10 @@ import { workflowOutcomeEngine } from '@/intelligence/WorkflowOutcomeEngine';
 
 export async function GET(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const workflowId = params.id;
+        const { id: workflowId } = await params;
 
         // Try cached outcomes first (fast path)
         const cached = await workflowOutcomeEngine.getCachedOutcomes(workflowId);
@@ -64,10 +64,10 @@ export async function GET(
 
 export async function POST(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const workflowId = params.id;
+        const { id: workflowId } = await params;
         const url = new URL(request.url);
 
         if (url.pathname.endsWith('/recalculate')) {

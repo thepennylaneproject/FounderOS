@@ -3,10 +3,10 @@ import supabase from '@/lib/supabase';
 
 export async function GET(
     request: Request,
-    { params }: { params: { threadId: string } }
+    { params }: { params: Promise<{ threadId: string }> }
 ) {
     try {
-        const threadId = params.threadId;
+        const { threadId } = await params;
 
         const [threadRes, messagesRes, receiptsRes] = await Promise.all([
             supabase.from('thread_states').select('*').eq('thread_id', threadId).single(),

@@ -18,10 +18,10 @@ import { eventLoggingEngine } from '@/intelligence/EventLoggingEngine';
 
 export async function POST(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const contactId = params.id;
+        const { id: contactId } = await params;
         const body = await request.json();
 
         const {
@@ -80,10 +80,10 @@ export async function POST(
 
 export async function GET(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const contactId = params.id;
+        const { id: contactId } = await params;
         const { searchParams } = new URL(request.url);
         const snapshotReason = searchParams.get('snapshot_reason') || undefined;
         const limit = parseInt(searchParams.get('limit') || '10', 10);

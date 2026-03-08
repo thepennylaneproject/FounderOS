@@ -3,13 +3,14 @@ import supabase from '@/lib/supabase';
 
 export async function POST(
     request: Request,
-    { params }: { params: { threadId: string } }
+    { params }: { params: Promise<{ threadId: string }> }
 ) {
     try {
         const { lane } = await request.json();
         if (!lane) {
             return NextResponse.json({ error: 'Missing lane' }, { status: 400 });
         }
+        const { threadId } = await params;
 
         const { error } = await supabase
             .from('thread_states')
@@ -19,7 +20,7 @@ export async function POST(
                 reason: 'User override',
                 updated_at: new Date().toISOString()
             })
-            .eq('thread_id', params.threadId);
+            .eq('thread_id', threadId);
 
         if (error) throw error;
         return NextResponse.json({ status: 'ok' });

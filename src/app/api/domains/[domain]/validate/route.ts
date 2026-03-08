@@ -3,10 +3,10 @@ import { domainManager } from '@/domains/DomainManager';
 
 export async function POST(
     request: Request,
-    { params }: { params: { domain: string } }
+    { params }: { params: Promise<{ domain: string }> }
 ) {
     try {
-        const domain = params.domain;
+        const { domain } = await params;
         const health = await domainManager.validateDomain(domain);
         return NextResponse.json(health);
     } catch (error: any) {

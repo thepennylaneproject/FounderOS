@@ -1,4 +1,5 @@
 // src/features/SaaSFeatures.ts
+// TODO: Implement full SaaS email feature set (escalation, lifecycle, multi-tenant routing)
 
 interface SupportTicket { id: string; }
 interface LifecycleEvent { type: string; userId: string; }
@@ -48,6 +49,7 @@ class SaaSEmailFeatures {
 
     // Utility methods
     private async calculatePriority(ticket: any): Promise<string> { return 'high'; }
+    // TODO: Load escalation recipients from configuration or database, not hardcoded
     private async getEscalationRecipient(priority: string): Promise<string> { return 'admin@example.com'; }
     private async sendEscalation(recipient: string, ticket: any): Promise<void> { }
     private async trackEscalation(id: string): Promise<void> { }
@@ -56,6 +58,9 @@ class SaaSEmailFeatures {
     private async sendRetentionSequence(userId: string): Promise<void> { }
     private async sendDunningSequence(userId: string): Promise<void> { }
     private async getTenant(id: string): Promise<Tenant> { return { tier: 'free', businessUnit: 'default' }; }
+    // TODO: Load default domains per tier from environment config or database
     private getDefaultDomain(tier: string): string { return 'example.com'; }
     private async send(payload: any): Promise<void> { }
 }
+
+export default SaaSEmailFeatures;
