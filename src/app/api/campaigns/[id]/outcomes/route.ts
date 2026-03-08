@@ -19,10 +19,10 @@ import { campaignOutcomeEngine } from '@/intelligence/CampaignOutcomeEngine';
 
 export async function GET(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const campaignId = params.id;
+        const { id: campaignId } = await params;
 
         // Try cached outcomes first (fast path)
         const cached = await campaignOutcomeEngine.getCachedOutcomes(campaignId);
@@ -76,10 +76,10 @@ export async function GET(
 
 export async function POST(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const campaignId = params.id;
+        const { id: campaignId } = await params;
         const url = new URL(request.url);
 
         if (url.pathname.endsWith('/recalculate')) {

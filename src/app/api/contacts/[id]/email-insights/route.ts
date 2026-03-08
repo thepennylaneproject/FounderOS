@@ -9,10 +9,10 @@ import supabase from '@/lib/supabase';
 
 export async function GET(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const contactId = params.id;
+        const { id: contactId } = await params;
         const { searchParams } = new URL(request.url);
         const limit = parseInt(searchParams.get('limit') || '20', 10);
         const offset = parseInt(searchParams.get('offset') || '0', 10);

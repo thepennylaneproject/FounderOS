@@ -8,8 +8,7 @@ import { cache } from 'react';
  */
 export const getSession = cache(async () => {
   try {
-    const cookieStore = await cookies();
-    const supabase = createServerComponentClient({ cookies: () => cookieStore });
+    const supabase = createServerComponentClient({ cookies });
     const { data: { session } } = await supabase.auth.getSession();
     return session;
   } catch (error) {

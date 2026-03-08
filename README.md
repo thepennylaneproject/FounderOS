@@ -12,7 +12,7 @@ FounderOS is an all-in-one command center for solo founders and small teams. It 
 
 ## Technical Overview
 
-- **Frontend:** Next.js 14 (App Router), React 18, Tailwind CSS
+- **Frontend:** Next.js 15 (App Router), React 18, Tailwind CSS
 - **Backend:** Next.js API Routes (serverless-compatible), Node.js background jobs
 - **Database:** PostgreSQL (via Supabase); local Docker Postgres for development
 - **Auth:** Supabase Auth with server-side session management

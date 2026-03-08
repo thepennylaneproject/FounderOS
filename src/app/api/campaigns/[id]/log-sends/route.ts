@@ -19,11 +19,11 @@ import { eventLoggingEngine } from '@/intelligence/EventLoggingEngine';
 
 export async function POST(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     let recipients: any[] = [];
     try {
-        const campaignId = params.id;
+        const { id: campaignId } = await params;
         const body = await request.json();
         recipients = body?.recipients || [];
 

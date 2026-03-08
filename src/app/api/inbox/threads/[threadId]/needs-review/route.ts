@@ -3,10 +3,11 @@ import supabase from '@/lib/supabase';
 
 export async function POST(
     request: Request,
-    { params }: { params: { threadId: string } }
+    { params }: { params: Promise<{ threadId: string }> }
 ) {
     try {
         const { needs_review } = await request.json();
+        const { threadId } = await params;
         
         const { error } = await supabase
             .from('thread_states')
@@ -15,7 +16,7 @@ export async function POST(
                 user_overridden: true,
                 updated_at: new Date().toISOString()
             })
-            .eq('thread_id', params.threadId);
+            .eq('thread_id', threadId);
 
         if (error) throw error;
         return NextResponse.json({ status: 'ok' });

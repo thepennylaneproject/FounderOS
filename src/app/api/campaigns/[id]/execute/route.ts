@@ -3,10 +3,10 @@ import { campaignEngine } from '@/campaigns/CampaignEngine';
 
 export async function POST(
     request: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const campaignId = params.id;
+        const { id: campaignId } = await params;
 
         // Fetch campaign to verify it exists
         const campaign = await campaignEngine.getCampaign(campaignId);
