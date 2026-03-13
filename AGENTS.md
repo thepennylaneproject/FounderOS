@@ -23,6 +23,17 @@ Redis and the mail server are defined in `docker-compose.yml` but have zero runt
 - **DB connection for local dev**: When running Next.js outside Docker, set `DB_HOST=localhost` in `.env.local` (the `docker-compose.yml` default uses `postgres` as hostname which only works inside the Docker network).
 - **Docker daemon**: Must start `dockerd` before using `docker compose`. In this cloud environment, Docker requires `fuse-overlayfs` storage driver and `iptables-legacy`.
 
+### Starting Services
+
+1. Start Docker daemon: `sudo dockerd &>/dev/null &` (wait ~3s)
+2. Start PostgreSQL: `sudo docker compose up -d postgres` (wait for healthy)
+3. Start dev server: `npm run dev` (port 3000)
+
+### Seeding Test Data
+
+- **Inbox**: `DATABASE_URL=postgresql://founderos:changeme123@localhost:5432/founderos node scripts/seed-inbox.js` — seeds 200 messages across 50 threads plus 2 classification rules.
+- **CRM contact (manual)**: Insert directly via `sudo docker exec founderos-db psql -U founderos -d founderos -c "INSERT INTO contacts ..."`.
+
 ### Common Commands
 
 See `README.md` and `package.json` scripts. Key ones:
@@ -31,3 +42,7 @@ See `README.md` and `package.json` scripts. Key ones:
 - **Lint**: `npm run lint`
 - **Build**: `npm run build`
 - **Inbox tests**: `npm run test:inbox` (requires running app + DB; see `Makefile`)
+
+### Auth Limitation
+
+Supabase credentials (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`) were not provided. Without them, all `/api/*` routes (except `/api/events/health`) return 401. Frontend pages render correctly but cannot load data from API routes. To fully test API-driven features (CRM CRUD, inbox loading, campaign management), valid Supabase project credentials are needed in `.env.local`.
